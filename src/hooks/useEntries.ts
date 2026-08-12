@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Entry } from '../types/entry'
+import type { Entry, EntryPatch } from '../types/entry'
 import {
   createEntry,
   deleteEntry,
@@ -36,15 +36,19 @@ export function useEntries(userId?: string) {
     load()
   }, [load])
 
-  const addEntry = useCallback(async () => {
-    const entry = await createEntry(userId)
-    setEntries((prev) => [entry, ...prev])
+  const addEntry = useCallback(async (createdAt?: string) => {
+    const entry = await createEntry(userId, createdAt)
+    setEntries((prev) =>
+      [entry, ...prev].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+    )
     return entry
   }, [userId])
 
   const saveEntry = useCallback(
-    async (id: string, content: string) => {
-      const updated = await updateEntry(id, content, userId)
+    async (id: string, patch: EntryPatch) => {
+      const updated = await updateEntry(id, patch, userId)
       setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)))
       return updated
     },

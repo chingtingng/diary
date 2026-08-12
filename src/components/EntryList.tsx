@@ -1,5 +1,6 @@
 import { format, isToday, isYesterday } from 'date-fns'
 import type { Entry } from '../types/entry'
+import { getMood } from '../lib/moods'
 
 interface EntryListProps {
   entries: Entry[]
@@ -17,8 +18,8 @@ function formatEntryDate(dateStr: string): string {
 
 function getPreview(content: string): string {
   const trimmed = content.trim()
-  if (!trimmed) return 'New entry...'
-  return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed
+  if (!trimmed) return 'New entry…'
+  return trimmed.length > 72 ? `${trimmed.slice(0, 72)}…` : trimmed
 }
 
 export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryListProps) {
@@ -26,26 +27,46 @@ export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryLi
     <aside className="entry-list">
       <button type="button" className="new-entry-btn" onClick={onNewEntry}>
         <span className="new-entry-icon">+</span>
-        New Entry
+        Start journaling
       </button>
 
       {entries.length === 0 ? (
-        <p className="empty-list">No entries yet. Start writing!</p>
+        <p className="empty-list">No pages yet. Tap above to begin.</p>
       ) : (
         <ul className="entries">
-          {entries.map((entry) => (
-            <li key={entry.id}>
-              <button
-                type="button"
-                className={`entry-item ${selectedId === entry.id ? 'selected' : ''}`}
-                onClick={() => onSelect(entry.id)}
-              >
-                <span className="entry-date">{formatEntryDate(entry.createdAt)}</span>
-                <span className="entry-time">{format(new Date(entry.createdAt), 'h:mm a')}</span>
-                <span className="entry-preview">{getPreview(entry.content)}</span>
-              </button>
-            </li>
-          ))}
+          {entries.map((entry) => {
+            const mood = getMood(entry.mood)
+            return (
+              <li key={entry.id}>
+                <button
+                  type="button"
+                  className={`entry-item ${selectedId === entry.id ? 'selected' : ''}`}
+                  onClick={() => onSelect(entry.id)}
+                  style={
+                    mood
+                      ? ({
+                          '--mood': mood.color,
+                          '--mood-soft': mood.colorSoft,
+                        } as React.CSSProperties)
+                      : undefined
+                  }
+                >
+                  <span className="entry-item-top">
+                    <span className="entry-date">{formatEntryDate(entry.createdAt)}</span>
+                    {mood ? (
+                      <span className="entry-mood-pill">
+                        <span aria-hidden>{mood.emoji}</span>
+                        {mood.label}
+                      </span>
+                    ) : (
+                      <span className="entry-time">{format(new Date(entry.createdAt), 'h:mm a')}</span>
+                    )}
+                  </span>
+                  <span className="entry-preview">{getPreview(entry.content)}</span>
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
     </aside>

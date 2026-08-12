@@ -81,15 +81,14 @@ Deploy the `dist/` folder to any static host (Vercel, Netlify, Cloudflare Pages,
 - **Supabase** — Postgres database, auth, and sync
 - **vite-plugin-pwa** — offline support and installability
 
-## Suggested Future Features
+## Mood calendar
 
-- **Search** — find entries by keyword
-- **Mood tags** — tag entries with how you're feeling (😊 😐 😔)
-- **Writing streak** — track consecutive days of journaling
-- **Dark mode** — easier on the eyes at night
-- **Reminders** — daily notification to write
-- **Markdown** — bold, lists, and headings in entries
-- **Photo attachments** — attach images via Supabase Storage
-- **Pin entries** — keep important entries at the top
-- **Password / Face ID lock** — extra privacy layer on the PWA
-- **Weekly summaries** — auto-generated recap of your week
+Tag each entry with a mood emoji (Great / Good / Okay / Low / Rough). The **Calendar** tab colours each day and shows the emoji so you can see your emotional landscape at a glance.
+
+After deploying, run this in the Supabase SQL Editor if you use cloud sync:
+
+```sql
+alter table public.entries
+  add column if not exists mood text
+  check (mood is null or mood in ('great', 'good', 'okay', 'low', 'rough'));
+```

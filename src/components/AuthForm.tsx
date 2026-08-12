@@ -33,9 +33,12 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <span className="auth-logo">📔</span>
+        <span className="auth-mark" aria-hidden>
+          ✦
+        </span>
+        <p className="brand-kicker">Private journal</p>
         <h1>My Diary</h1>
-        <p className="auth-subtitle">Sign in to sync your entries across devices</p>
+        <p className="auth-subtitle">A quiet place for daily thoughts and moods</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
@@ -73,7 +76,7 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
           {error && <p className="auth-error">{error}</p>}
 
           <button type="submit" className="auth-submit" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+            {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
 

@@ -1,4 +1,4 @@
-import type { Entry, EntryRow } from '../types/entry'
+import type { Entry, EntryPatch, EntryRow } from '../types/entry'
 import { rowToEntry } from '../types/entry'
 import { isSupabaseConfigured, supabase } from './supabase'
 
@@ -8,7 +8,8 @@ function readLocalEntries(): Entry[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as Entry[]
+    const parsed = JSON.parse(raw) as Entry[]
+    return parsed.map((e) => ({ ...e, mood: e.mood ?? null }))
   } catch {
     return []
   }
@@ -47,13 +48,17 @@ export async function fetchEntries(userId?: string): Promise<Entry[]> {
   return (data as EntryRow[]).map(rowToEntry)
 }
 
-export async function createEntry(userId?: string): Promise<Entry> {
-  const now = new Date().toISOString()
+export async function createEntry(
+  userId?: string,
+  createdAt?: string
+): Promise<Entry> {
+  const now = createdAt ?? new Date().toISOString()
 
   if (getStorageMode() === 'local') {
     const entry: Entry = {
       id: generateId(),
       content: '',
+      mood: null,
       createdAt: now,
       updatedAt: now,
     }
@@ -67,7 +72,7 @@ export async function createEntry(userId?: string): Promise<Entry> {
 
   const { data, error } = await supabase
     .from('entries')
-    .insert({ user_id: userId, content: '' })
+    .insert({ user_id: userId, content: '', mood: null, created_at: now })
     .select()
     .single()
 
@@ -77,7 +82,7 @@ export async function createEntry(userId?: string): Promise<Entry> {
 
 export async function updateEntry(
   id: string,
-  content: string,
+  patch: EntryPatch,
   userId?: string
 ): Promise<Entry> {
   if (getStorageMode() === 'local') {
@@ -87,7 +92,7 @@ export async function updateEntry(
 
     const updated: Entry = {
       ...entries[index],
-      content,
+      ...patch,
       updatedAt: new Date().toISOString(),
     }
     entries[index] = updated
@@ -99,7 +104,7 @@ export async function updateEntry(
 
   const { data, error } = await supabase
     .from('entries')
-    .update({ content })
+    .update(patch)
     .eq('id', id)
     .eq('user_id', userId)
     .select()

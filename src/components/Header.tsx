@@ -1,22 +1,55 @@
 import { useState } from 'react'
 import type { StorageMode } from '../lib/storage'
 
+export type AppView = 'journal' | 'calendar'
+
 interface HeaderProps {
   onExport: () => void
   storageMode: StorageMode
   onSignOut?: () => void
   username?: string
+  view: AppView
+  onViewChange: (view: AppView) => void
 }
 
-export function Header({ onExport, storageMode, onSignOut, username }: HeaderProps) {
+export function Header({
+  onExport,
+  storageMode,
+  onSignOut,
+  username,
+  view,
+  onViewChange,
+}: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <header className="app-header">
       <div className="header-brand">
-        <span className="header-logo">📔</span>
-        <h1>My Diary</h1>
+        <span className="header-mark" aria-hidden>
+          ✦
+        </span>
+        <div>
+          <p className="brand-kicker">Private journal</p>
+          <h1>My Diary</h1>
+        </div>
       </div>
+
+      <nav className="view-tabs" aria-label="Views">
+        <button
+          type="button"
+          className={view === 'journal' ? 'active' : ''}
+          onClick={() => onViewChange('journal')}
+        >
+          Pages
+        </button>
+        <button
+          type="button"
+          className={view === 'calendar' ? 'active' : ''}
+          onClick={() => onViewChange('calendar')}
+        >
+          Calendar
+        </button>
+      </nav>
 
       <div className="header-actions">
         <button type="button" className="header-btn" onClick={onExport}>
@@ -38,7 +71,7 @@ export function Header({ onExport, storageMode, onSignOut, username }: HeaderPro
             <div className="header-menu">
               {storageMode === 'local' && (
                 <p className="menu-note">
-                  Running in local mode. Connect Supabase to sync across devices.
+                  Local mode — connect Supabase to sync across devices.
                 </p>
               )}
               {username && <p className="menu-email">@{username}</p>}

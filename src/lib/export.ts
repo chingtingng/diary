@@ -23,7 +23,8 @@ export function exportEntriesAsText(entries: Entry[]): string {
         ? ` (edited ${format(new Date(entry.updatedAt), 'MMM d, yyyy h:mm a')})`
         : ''
 
-    lines.push(`${date} · ${time}${updated}`)
+    const mood = entry.mood ? ` · mood: ${entry.mood}` : ''
+    lines.push(`${date} · ${time}${updated}${mood}`)
     lines.push('')
     lines.push(entry.content.trim() || '(empty entry)')
     lines.push('')
