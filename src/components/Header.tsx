@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { StorageMode } from '../lib/storage'
 import { MenuDots } from './MenuDots'
+import { OpenBookMark } from './OpenBookMark'
 
 export type AppView = 'journal' | 'calendar'
 
@@ -26,9 +27,7 @@ export function Header({
   return (
     <header className="app-header">
       <div className="header-brand">
-        <span className="header-mark" aria-hidden>
-          ✦
-        </span>
+        <OpenBookMark />
         <div>
           <p className="brand-kicker">Private journal</p>
           <h1>My Diary</h1>
