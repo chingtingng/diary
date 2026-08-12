@@ -16,6 +16,7 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
   const [mood, setMood] = useState<MoodId | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -24,10 +25,12 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
       setContent(entry.content)
       setMood(entry.mood)
       setSaved(true)
+      setMenuOpen(false)
       textareaRef.current?.focus()
     } else {
       setContent('')
       setMood(null)
+      setMenuOpen(false)
     }
   }, [entry?.id])
 
@@ -68,6 +71,7 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
 
   const handleDelete = async () => {
     if (!entry) return
+    setMenuOpen(false)
     if (!confirm('Delete this entry? This cannot be undone.')) return
     await onDelete(entry.id)
   }
@@ -86,6 +90,7 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
 
   const created = new Date(entry.createdAt)
   const moodMeta = getMood(mood)
+  const saveLabel = saving ? 'Saving…' : saved ? 'Saved' : null
 
   return (
     <div
@@ -99,15 +104,52 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
       <header className="editor-header">
         <div className="editor-meta">
           <time dateTime={entry.createdAt}>{format(created, 'EEEE, MMMM d')}</time>
-          <span className="editor-time">{format(created, 'h:mm a')}</span>
+          <div className="editor-meta-row">
+            <span className="editor-time">{format(created, 'h:mm a')}</span>
+            {saveLabel && (
+              <>
+                <span className="editor-meta-sep" aria-hidden>
+                  ·
+                </span>
+                <span className="save-status" aria-live="polite">
+                  {saveLabel}
+                </span>
+              </>
+            )}
+          </div>
         </div>
+
         <div className="editor-actions">
-          <span className={`save-status ${saved && !saving ? 'saved' : ''}`}>
-            {saving ? 'Saving…' : saved ? 'Saved' : 'Unsaved'}
-          </span>
-          <button type="button" className="delete-btn" onClick={handleDelete}>
-            Delete
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Entry options"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+          >
+            <span className="menu-dots" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </span>
           </button>
+
+          {menuOpen && (
+            <>
+              <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <div className="editor-menu" role="menu">
+                <button
+                  type="button"
+                  className="menu-item menu-item-danger"
+                  role="menuitem"
+                  onClick={handleDelete}
+                >
+                  Delete entry
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
