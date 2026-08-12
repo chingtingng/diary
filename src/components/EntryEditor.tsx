@@ -4,6 +4,7 @@ import type { Entry, EntryPatch } from '../types/entry'
 import type { MoodId } from '../lib/moods'
 import { getMood } from '../lib/moods'
 import { MoodPicker } from './MoodPicker'
+import { MenuDots } from './MenuDots'
 
 export type EntryDraft = {
   id: string
@@ -148,11 +149,7 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
             aria-expanded={menuOpen}
             aria-haspopup="menu"
           >
-            <span className="menu-dots" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </span>
+            <MenuDots />
           </button>
 
           {menuOpen && (

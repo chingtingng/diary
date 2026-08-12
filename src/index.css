@@ -58,22 +58,13 @@ button {
   background: none;
 }
 
-/* Perfect circular dots for overflow menus (avoids distorted unicode ellipsis) */
+/* Overflow menu glyph (SVG circles — CSS/unicode dots often render squashed) */
 .menu-dots {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  line-height: 1;
-}
-
-.menu-dots span {
   display: block;
-  width: 3.5px;
-  height: 3.5px;
-  border-radius: 50%;
-  background: currentColor;
   flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  overflow: visible;
 }
 
 .eyebrow,
@@ -170,7 +161,10 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   height: 36px;
+  min-height: 36px;
+  max-height: 36px;
   padding: 0 14px;
   border-radius: 999px;
   font-family: var(--font-ui);
@@ -188,9 +182,12 @@ button {
 
 .menu-toggle {
   width: 36px;
+  min-width: 36px;
+  max-width: 36px;
   padding: 0;
   border-radius: 50%;
   flex-shrink: 0;
+  aspect-ratio: 1;
 }
 
 .menu-backdrop {
@@ -471,11 +468,16 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   width: 36px;
   height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
   border-radius: 50%;
   color: var(--ink-soft);
+  flex-shrink: 0;
+  aspect-ratio: 1;
   transition: background 0.15s, color 0.15s;
 }
 

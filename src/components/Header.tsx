@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { StorageMode } from '../lib/storage'
+import { MenuDots } from './MenuDots'
 
 export type AppView = 'journal' | 'calendar'
 
@@ -64,11 +65,7 @@ export function Header({
           aria-expanded={menuOpen}
           aria-haspopup="menu"
         >
-          <span className="menu-dots" aria-hidden>
-            <span />
-            <span />
-            <span />
-          </span>
+          <MenuDots />
         </button>
 
         {menuOpen && (
