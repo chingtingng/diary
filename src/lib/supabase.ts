@@ -1,35 +1,34 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-/** Trim quotes/whitespace and strip accidental /rest/v1 paths from the project URL. */
+/**
+ * Accept common paste mistakes (trailing /rest/v1, quotes, whitespace)
+ * and rebuild a clean project URL: https://<ref>.supabase.co
+ */
 function normalizeSupabaseUrl(raw: string | undefined): string | null {
   if (!raw) return null
-  let url = raw.trim().replace(/^["']|["']$/g, '')
-  url = url.replace(/\/rest\/v1\/?$/i, '')
-  url = url.replace(/\/+$/, '')
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
+  const cleaned = raw.trim().replace(/^["']|["']$/g, '')
+  const match = cleaned.match(/([a-z0-9-]+)\.supabase\.co/i)
+  if (!match) {
     console.error(
-      '[diary] VITE_SUPABASE_URL looks wrong. Expected https://xxxx.supabase.co — got:',
+      '[diary] VITE_SUPABASE_URL must contain <project-ref>.supabase.co — got:',
       raw
     )
+    return null
   }
-  return url
+  return `https://${match[1].toLowerCase()}.supabase.co`
 }
 
 function normalizeKey(raw: string | undefined): string | null {
   if (!raw) return null
   // Newlines / spaces in Vercel env values cause: Failed to execute 'fetch': Invalid value
-  return raw.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '')
+  const key = raw.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '')
+  return key || null
 }
 
 const supabaseUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)
 const supabaseAnonKey = normalizeKey(import.meta.env.VITE_SUPABASE_ANON_KEY)
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-    supabaseAnonKey &&
-    supabaseUrl !== 'https://your-project.supabase.co' &&
-    supabaseAnonKey !== 'your-anon-key'
-)
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseAnonKey!, {
@@ -40,3 +39,7 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
       },
     })
   : null
+
+if (import.meta.env.DEV && isSupabaseConfigured) {
+  console.info('[diary] Supabase URL:', supabaseUrl)
+}
