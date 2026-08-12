@@ -1048,6 +1048,17 @@ button.year-board-cell:hover {
     border-radius: 12px;
   }
 
+  .calendar-day.board-day {
+    border-radius: 10px;
+  }
+
+  .year-board-day-headers,
+  .year-board-row {
+    grid-template-columns: 36px repeat(31, minmax(12px, 1fr));
+    min-width: 480px;
+    gap: 3px;
+  }
+
   .day-emoji {
     font-size: 1rem;
   }
