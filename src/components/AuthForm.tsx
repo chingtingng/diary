@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { OpenBookMark } from './OpenBookMark'
 
 interface AuthFormProps {
   onSignIn: (username: string, password: string) => Promise<void>
@@ -33,9 +34,7 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <span className="auth-mark" aria-hidden>
-          ✦
-        </span>
+        <OpenBookMark className="auth-mark" />
         <p className="brand-kicker">Private journal</p>
         <h1>My Diary</h1>
         <p className="auth-subtitle">A quiet place for daily thoughts and moods</p>

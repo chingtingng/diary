@@ -113,7 +113,11 @@ button {
   border-radius: 12px;
   background: linear-gradient(145deg, #d7ebf4, #e4f3ea);
   color: var(--accent);
-  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.brand-book {
+  display: block;
 }
 
 .header-brand h1,
