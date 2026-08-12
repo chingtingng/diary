@@ -5,15 +5,22 @@ import type { MoodId } from '../lib/moods'
 import { getMood } from '../lib/moods'
 import { MoodPicker } from './MoodPicker'
 
+export type EntryDraft = {
+  id: string
+  content: string
+  mood: MoodId | null
+}
+
 interface EntryEditorProps {
   entry: Entry | null
   onSave: (id: string, patch: EntryPatch) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onDraftChange?: (draft: EntryDraft | null) => void
 }
 
-export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
-  const [content, setContent] = useState('')
-  const [mood, setMood] = useState<MoodId | null>(null)
+export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEditorProps) {
+  const [content, setContent] = useState(entry?.content ?? '')
+  const [mood, setMood] = useState<MoodId | null>(entry?.mood ?? null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -21,6 +28,11 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+
     if (entry) {
       setContent(entry.content)
       setMood(entry.mood)
@@ -33,6 +45,14 @@ export function EntryEditor({ entry, onSave, onDelete }: EntryEditorProps) {
       setMenuOpen(false)
     }
   }, [entry?.id])
+
+  useEffect(() => {
+    if (!entry) {
+      onDraftChange?.(null)
+      return
+    }
+    onDraftChange?.({ id: entry.id, content, mood })
+  }, [entry, content, mood, onDraftChange])
 
   const persist = useCallback(
     async (patch: EntryPatch) => {
