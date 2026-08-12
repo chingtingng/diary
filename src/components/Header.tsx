@@ -61,14 +61,20 @@ export function Header({
           className="header-btn menu-toggle"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Menu"
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
         >
-          ⋯
+          <span className="menu-dots" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </span>
         </button>
 
         {menuOpen && (
           <>
             <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
-            <div className="header-menu">
+            <div className="header-menu" role="menu">
               {storageMode === 'local' && (
                 <p className="menu-note">
                   Local mode — connect Supabase to sync across devices.
@@ -79,6 +85,7 @@ export function Header({
                 <button
                   type="button"
                   className="menu-item"
+                  role="menuitem"
                   onClick={() => {
                     setMenuOpen(false)
                     onSignOut()

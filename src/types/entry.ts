@@ -31,3 +31,8 @@ export type EntryPatch = {
   content?: string
   mood?: MoodId | null
 }
+
+/** Apple Notes-style: no text and no mood means the page was never started. */
+export function isBlankEntry(content: string, mood: MoodId | null | undefined): boolean {
+  return content.trim().length === 0 && mood == null
+}

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthForm } from './components/AuthForm'
-import { EntryEditor } from './components/EntryEditor'
+import { EntryEditor, type EntryDraft } from './components/EntryEditor'
 import { EntryList } from './components/EntryList'
 import { Header, type AppView } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
@@ -8,7 +8,7 @@ import { exportAndDownload } from './lib/export'
 import { getEntry } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useEntries } from './hooks/useEntries'
-import type { Entry, EntryPatch } from './types/entry'
+import { isBlankEntry, type Entry, type EntryPatch } from './types/entry'
 import './index.css'
 
 function App() {
@@ -28,6 +28,14 @@ function App() {
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
   const [view, setView] = useState<AppView>('journal')
+  const draftRef = useRef<EntryDraft | null>(null)
+  const selectedIdRef = useRef<string | null>(null)
+  const discardingIdsRef = useRef(new Set<string>())
+
+  const selectEntry = useCallback((id: string | null) => {
+    selectedIdRef.current = id
+    setSelectedId(id)
+  }, [])
 
   useEffect(() => {
     if (!selectedId) {
@@ -39,26 +47,75 @@ function App() {
       setSelectedEntry(fromList)
       return
     }
-    getEntry(selectedId, user?.id).then(setSelectedEntry)
-  }, [selectedId, entries, user?.id])
+    if (discardingIdsRef.current.has(selectedId)) {
+      setSelectedEntry(null)
+      return
+    }
+    getEntry(selectedId, user?.id).then((entry) => {
+      if (entry) setSelectedEntry(entry)
+      else selectEntry(null)
+    })
+  }, [selectedId, entries, user?.id, selectEntry])
+
+  const handleDraftChange = useCallback((draft: EntryDraft | null) => {
+    draftRef.current = draft
+  }, [])
+
+  const discardBlankEntry = useCallback(
+    async (id: string | null | undefined) => {
+      if (!id || discardingIdsRef.current.has(id)) return false
+
+      const draft = draftRef.current?.id === id ? draftRef.current : null
+
+      // In-progress typing/mood wins so we don't delete before autosave.
+      if (draft && !isBlankEntry(draft.content, draft.mood)) return false
+
+      const stored =
+        entries.find((e) => e.id === id) ??
+        (selectedEntry?.id === id ? selectedEntry : null) ??
+        (await getEntry(id, user?.id))
+
+      if (!stored || !isBlankEntry(stored.content, stored.mood)) return false
+
+      discardingIdsRef.current.add(id)
+      if (draftRef.current?.id === id) draftRef.current = null
+
+      try {
+        await removeEntry(id)
+        return true
+      } finally {
+        discardingIdsRef.current.delete(id)
+      }
+    },
+    [entries, removeEntry, selectedEntry, user?.id]
+  )
 
   const handleNewEntry = useCallback(async () => {
+    await discardBlankEntry(selectedIdRef.current)
     const entry = await addEntry()
-    setSelectedId(entry.id)
+    selectEntry(entry.id)
     setView('journal')
     setShowList(false)
-  }, [addEntry])
+  }, [addEntry, discardBlankEntry, selectEntry])
 
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(id)
-    setView('journal')
-    setShowList(false)
-  }, [])
+  const handleSelect = useCallback(
+    async (id: string) => {
+      if (id !== selectedIdRef.current) {
+        await discardBlankEntry(selectedIdRef.current)
+      }
+      selectEntry(id)
+      setView('journal')
+      setShowList(false)
+    },
+    [discardBlankEntry, selectEntry]
+  )
 
   const handleCalendarSelect = useCallback(
     async (date: Date, entryId?: string) => {
+      await discardBlankEntry(selectedIdRef.current)
+
       if (entryId) {
-        setSelectedId(entryId)
+        selectEntry(entryId)
         setView('journal')
         setShowList(false)
         return
@@ -66,15 +123,16 @@ function App() {
       const stamped = new Date(date)
       stamped.setHours(12, 0, 0, 0)
       const entry = await addEntry(stamped.toISOString())
-      setSelectedId(entry.id)
+      selectEntry(entry.id)
       setView('journal')
       setShowList(false)
     },
-    [addEntry]
+    [addEntry, discardBlankEntry, selectEntry]
   )
 
   const handleSave = useCallback(
     async (id: string, patch: EntryPatch) => {
+      if (discardingIdsRef.current.has(id)) return
       await saveEntry(id, patch)
     },
     [saveEntry]
@@ -82,19 +140,39 @@ function App() {
 
   const handleDelete = useCallback(
     async (id: string) => {
+      if (draftRef.current?.id === id) draftRef.current = null
       await removeEntry(id)
-      setSelectedId(null)
+      selectEntry(null)
       setShowList(true)
     },
-    [removeEntry]
+    [removeEntry, selectEntry]
+  )
+
+  const handleBackToList = useCallback(async () => {
+    const discarded = await discardBlankEntry(selectedIdRef.current)
+    if (discarded) selectEntry(null)
+    setShowList(true)
+  }, [discardBlankEntry, selectEntry])
+
+  const handleViewChange = useCallback(
+    async (next: AppView) => {
+      if (next === 'calendar') {
+        const discarded = await discardBlankEntry(selectedIdRef.current)
+        if (discarded) selectEntry(null)
+        setShowList(true)
+      }
+      setView(next)
+    },
+    [discardBlankEntry, selectEntry]
   )
 
   const handleExport = useCallback(() => {
-    if (entries.length === 0) {
+    const exportable = entries.filter((e) => !isBlankEntry(e.content, e.mood))
+    if (exportable.length === 0) {
       alert('No entries to export yet.')
       return
     }
-    exportAndDownload(entries)
+    exportAndDownload(exportable)
   }, [entries])
 
   if (isSupabaseConfigured && authLoading) {
@@ -118,10 +196,7 @@ function App() {
         onSignOut={isSupabaseConfigured ? signOut : undefined}
         username={username}
         view={view}
-        onViewChange={(next) => {
-          setView(next)
-          if (next === 'calendar') setShowList(true)
-        }}
+        onViewChange={handleViewChange}
       />
 
       <main className="main">
@@ -138,7 +213,7 @@ function App() {
             <button
               type="button"
               className="mobile-back"
-              onClick={() => setShowList(true)}
+              onClick={handleBackToList}
               aria-hidden={showList}
               style={{ visibility: showList ? 'hidden' : 'visible' }}
             >
@@ -161,9 +236,11 @@ function App() {
 
               <div className={`panel editor-panel ${!showList ? 'visible' : ''}`}>
                 <EntryEditor
+                  key={selectedEntry?.id ?? 'empty'}
                   entry={selectedEntry}
                   onSave={handleSave}
                   onDelete={handleDelete}
+                  onDraftChange={handleDraftChange}
                 />
               </div>
             </div>

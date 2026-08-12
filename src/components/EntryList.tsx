@@ -1,5 +1,5 @@
 import { format, isToday, isYesterday } from 'date-fns'
-import type { Entry } from '../types/entry'
+import { isBlankEntry, type Entry } from '../types/entry'
 import { getMood } from '../lib/moods'
 
 interface EntryListProps {
@@ -23,6 +23,11 @@ function getPreview(content: string): string {
 }
 
 export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryListProps) {
+  // Keep the open blank page visible; hide other empty drafts like Apple Notes.
+  const visibleEntries = entries.filter(
+    (entry) => entry.id === selectedId || !isBlankEntry(entry.content, entry.mood)
+  )
+
   return (
     <aside className="entry-list">
       <button type="button" className="new-entry-btn" onClick={onNewEntry}>
@@ -30,11 +35,11 @@ export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryLi
         Start journaling
       </button>
 
-      {entries.length === 0 ? (
+      {visibleEntries.length === 0 ? (
         <p className="empty-list">No pages yet. Tap above to begin.</p>
       ) : (
         <ul className="entries">
-          {entries.map((entry) => {
+          {visibleEntries.map((entry) => {
             const mood = getMood(entry.mood)
             return (
               <li key={entry.id}>

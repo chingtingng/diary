@@ -49,12 +49,31 @@ button,
 input,
 textarea {
   font: inherit;
+  font-family: var(--font-ui);
 }
 
 button {
   cursor: pointer;
   border: none;
   background: none;
+}
+
+/* Perfect circular dots for overflow menus (avoids distorted unicode ellipsis) */
+.menu-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1;
+}
+
+.menu-dots span {
+  display: block;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .eyebrow,
@@ -126,6 +145,7 @@ button {
 .view-tabs button {
   padding: 8px 14px;
   border-radius: 999px;
+  font-family: var(--font-ui);
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--ink-soft);
@@ -147,10 +167,16 @@ button {
 }
 
 .header-btn {
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
   border-radius: 999px;
+  font-family: var(--font-ui);
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1;
   color: var(--accent);
   background: var(--accent-soft);
   transition: transform 0.15s, background 0.15s;
@@ -161,9 +187,10 @@ button {
 }
 
 .menu-toggle {
-  padding: 8px 12px;
-  font-size: 1.1rem;
-  letter-spacing: 1px;
+  width: 36px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .menu-backdrop {
@@ -189,6 +216,7 @@ button {
 .menu-email {
   margin: 0;
   padding: 8px 12px;
+  font-family: var(--font-ui);
   font-size: 0.75rem;
   color: var(--ink-soft);
 }
@@ -204,11 +232,22 @@ button {
   text-align: left;
   padding: 10px 12px;
   border-radius: 8px;
+  font-family: var(--font-ui);
   font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
 }
 
 .menu-item:hover {
   background: var(--mist);
+}
+
+.menu-item-danger {
+  color: var(--danger);
+}
+
+.menu-item-danger:hover {
+  background: #f8e3e3;
 }
 
 /* Main */
@@ -400,35 +439,69 @@ button {
   letter-spacing: -0.02em;
 }
 
-.editor-time {
+.editor-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-family: var(--font-ui);
   font-size: 0.8125rem;
   color: var(--ink-soft);
+  min-height: 1.25rem;
+}
+
+.editor-time {
+  font-family: inherit;
+  color: inherit;
+}
+
+.editor-meta-sep {
+  opacity: 0.55;
+  line-height: 1;
 }
 
 .editor-actions {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--ink-soft);
+  transition: background 0.15s, color 0.15s;
+}
+
+.icon-btn:hover {
+  background: rgb(28 36 48 / 6%);
+  color: var(--ink);
 }
 
 .save-status {
-  font-size: 0.75rem;
-  color: var(--ink-soft);
+  font-family: var(--font-ui);
+  font-size: inherit;
+  font-weight: 500;
+  color: inherit;
 }
 
-.save-status.saved {
-  color: #3d9a6a;
-}
-
-.delete-btn {
-  font-size: 0.8125rem;
-  color: var(--danger);
-  padding: 6px 10px;
-  border-radius: 999px;
-}
-
-.delete-btn:hover {
-  background: #f8e3e3;
+.editor-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 168px;
+  background: var(--paper-solid);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  z-index: 21;
 }
 
 .mood-picker {
