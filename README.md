@@ -49,9 +49,12 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 4. Enable email auth
+### 4. Enable email auth (used under the hood for username login)
 
-In Supabase Dashboard → **Authentication → Providers**, enable Email provider.
+In Supabase Dashboard → **Authentication → Providers**, enable Email.
+
+**Important:** Turn **off** “Confirm email” so username signup works without a real inbox.
+The app maps usernames to synthetic emails like `you@diary.local` — you only ever type a username.
 
 Restart the dev server after adding `.env`.
 

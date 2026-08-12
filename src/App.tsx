@@ -11,8 +11,15 @@ import type { Entry } from './types/entry'
 import './index.css'
 
 function App() {
-  const { user, loading: authLoading, signIn, signUp, signOut, isSupabaseConfigured } =
-    useAuth()
+  const {
+    user,
+    username,
+    loading: authLoading,
+    signIn,
+    signUp,
+    signOut,
+    isSupabaseConfigured,
+  } = useAuth()
   const { entries, loading, addEntry, saveEntry, removeEntry, storageMode } = useEntries(
     user?.id
   )
@@ -87,7 +94,7 @@ function App() {
         onExport={handleExport}
         storageMode={storageMode}
         onSignOut={isSupabaseConfigured ? signOut : undefined}
-        userEmail={user?.email}
+        username={username}
       />
 
       <main className="main">

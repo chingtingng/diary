@@ -1,31 +1,27 @@
 import { useState } from 'react'
 
 interface AuthFormProps {
-  onSignIn: (email: string, password: string) => Promise<void>
-  onSignUp: (email: string, password: string) => Promise<void>
+  onSignIn: (username: string, password: string) => Promise<void>
+  onSignUp: (username: string, password: string) => Promise<void>
 }
 
 export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setMessage(null)
     setLoading(true)
 
     try {
       if (mode === 'signin') {
-        await onSignIn(email, password)
+        await onSignIn(username, password)
       } else {
-        await onSignUp(email, password)
-        setMessage('Check your email to confirm your account, then sign in.')
-        setMode('signin')
+        await onSignUp(username, password)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed')
@@ -43,14 +39,21 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            Email
+            Username
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
-              autoComplete="email"
-              placeholder="you@example.com"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="yourname"
+              minLength={3}
+              maxLength={30}
+              pattern="[A-Za-z0-9_]+"
+              title="Letters, numbers, and underscores only"
             />
           </label>
 
@@ -68,7 +71,6 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
           </label>
 
           {error && <p className="auth-error">{error}</p>}
-          {message && <p className="auth-message">{message}</p>}
 
           <button type="submit" className="auth-submit" disabled={loading}>
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
@@ -81,7 +83,6 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
           onClick={() => {
             setMode(mode === 'signin' ? 'signup' : 'signin')
             setError(null)
-            setMessage(null)
           }}
         >
           {mode === 'signin'

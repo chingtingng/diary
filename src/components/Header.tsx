@@ -5,10 +5,10 @@ interface HeaderProps {
   onExport: () => void
   storageMode: StorageMode
   onSignOut?: () => void
-  userEmail?: string
+  username?: string
 }
 
-export function Header({ onExport, storageMode, onSignOut, userEmail }: HeaderProps) {
+export function Header({ onExport, storageMode, onSignOut, username }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -41,7 +41,7 @@ export function Header({ onExport, storageMode, onSignOut, userEmail }: HeaderPr
                   Running in local mode. Connect Supabase to sync across devices.
                 </p>
               )}
-              {userEmail && <p className="menu-email">{userEmail}</p>}
+              {username && <p className="menu-email">@{username}</p>}
               {onSignOut && (
                 <button
                   type="button"
