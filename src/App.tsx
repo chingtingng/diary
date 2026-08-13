@@ -308,7 +308,7 @@ function App() {
               aria-hidden={showList}
               style={{ visibility: showList ? 'hidden' : 'visible' }}
             >
-              ← Journal
+              ← Back to journal
             </button>
 
             <div className="layout">

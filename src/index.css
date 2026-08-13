@@ -337,7 +337,9 @@ button:focus {
 
 .mobile-back {
   display: none;
-  padding: 10px 18px;
+  align-self: flex-start;
+  padding: 8px 12px 4px 34px;
+  text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--accent);
