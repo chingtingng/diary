@@ -41,6 +41,7 @@ In the Supabase SQL Editor, run the contents of:
 supabase/migrations/001_create_entries.sql
 supabase/migrations/002_add_mood.sql
 supabase/migrations/003_create_expenses.sql
+supabase/migrations/004_add_travel_category.sql
 ```
 
 These create the `entries` and `expenses` tables with row-level security so each user only sees their own data.

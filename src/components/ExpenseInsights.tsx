@@ -83,7 +83,7 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
             </button>
             <button
               type="button"
-              className="today-btn"
+              className={`today-btn${current ? ' current' : ''}`}
               onClick={() => setAnchor(new Date())}
               disabled={current}
             >

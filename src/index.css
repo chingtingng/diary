@@ -72,6 +72,7 @@ button {
   cursor: pointer;
   border: none;
   background: none;
+  color: inherit;
 }
 
 /* Overflow menu glyph (SVG circles — CSS/unicode dots often render squashed) */
@@ -389,7 +390,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 6px 11px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: var(--accent-soft);
@@ -399,7 +400,7 @@ button {
 
 .menu-select-field .menu-select-trigger {
   width: 100%;
-  padding: 11px 13px;
+  padding: 8px 12px;
   border-radius: 14px;
   border-color: var(--line);
   background: rgb(255 255 255 / 80%);
@@ -537,6 +538,7 @@ button {
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.03em;
+  color: var(--ink);
 }
 
 .expense-add-toggle {
@@ -545,7 +547,7 @@ button {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 11px 16px;
   background: var(--accent);
   color: white;
   border-radius: 999px;
@@ -694,6 +696,7 @@ button {
   letter-spacing: -0.02em;
   min-width: 4.5rem;
   text-align: right;
+  color: var(--ink);
 }
 
 .visually-hidden {
@@ -753,6 +756,7 @@ button {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  color: var(--ink);
 }
 
 .expense-pie-legend {
@@ -815,7 +819,7 @@ button {
 
 .expense-form input,
 .expense-form select {
-  padding: 11px 13px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
   font-size: 1rem;
@@ -838,7 +842,7 @@ button {
 
 .expense-submit {
   margin-top: 2px;
-  padding: 12px;
+  padding: 10px;
   background: var(--accent);
   color: white;
   border-radius: 999px;
@@ -875,6 +879,9 @@ button {
   border-top: 1px solid var(--line);
   text-align: left;
   background: transparent;
+  color: var(--ink);
+  appearance: none;
+  -webkit-appearance: none;
   transition: background 0.15s, transform 0.15s;
 }
 
@@ -901,6 +908,8 @@ button {
   font-weight: 600;
   letter-spacing: -0.02em;
   flex-shrink: 0;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
 }
 
 .expense-item-main .expense-item-note {
@@ -949,6 +958,7 @@ button {
   font-size: 1.65rem;
   font-weight: 600;
   letter-spacing: -0.03em;
+  color: var(--ink);
 }
 
 .expense-form-saved {
@@ -967,12 +977,13 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: -2px;
+  margin-top: 6px;
+  padding-top: 16px;
 }
 
 .expense-detail-delete {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border-radius: 999px;
   font-weight: 600;
   color: var(--danger);
@@ -1008,10 +1019,11 @@ button {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgb(255 255 255 / 80%);
+  color: var(--ink);
   text-align: left;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
@@ -1129,7 +1141,7 @@ button {
 }
 
 .datetime-time-columns select {
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgb(255 255 255 / 80%);
@@ -1173,7 +1185,7 @@ button {
   justify-content: center;
   gap: 8px;
   margin: 16px;
-  padding: 14px 16px;
+  padding: 11px 16px;
   background: var(--accent);
   color: white;
   border-radius: 999px;
@@ -1540,8 +1552,8 @@ button {
 }
 
 .calendar-nav button {
-  min-width: 36px;
-  height: 36px;
+  min-width: 32px;
+  height: 32px;
   padding: 0 12px;
   border-radius: 999px;
   background: rgb(255 255 255 / 75%);
@@ -1553,6 +1565,16 @@ button {
 
 .calendar-nav .today-btn {
   font-size: 0.8125rem;
+}
+
+.calendar-nav .today-btn.current,
+.calendar-nav .today-btn:disabled {
+  background: var(--accent-soft);
+  color: var(--accent);
+  -webkit-text-fill-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  opacity: 1;
+  cursor: default;
 }
 
 .calendar-nav .export-board-btn {
@@ -1790,7 +1812,7 @@ button.year-board-cell:hover {
 }
 
 .auth-form input {
-  padding: 12px 14px;
+  padding: 10px 13px;
   border: 1px solid var(--line);
   border-radius: 14px;
   font-size: 1rem;
@@ -1810,7 +1832,7 @@ button.year-board-cell:hover {
 }
 
 .auth-submit {
-  padding: 13px;
+  padding: 11px;
   background: var(--accent);
   color: white;
   border-radius: 999px;
@@ -1905,7 +1927,7 @@ button.year-board-cell:hover {
   }
 
   .menu-select-compact .menu-select-trigger {
-    padding: 7px 11px;
+    padding: 6px 11px;
   }
 
   .expense-detail {
@@ -1983,7 +2005,7 @@ button.year-board-cell:hover {
   .expense-add-toggle,
   .expense-submit,
   .expense-detail-delete {
-    padding: 12px;
+    padding: 10px 16px;
   }
 
   .calendar-day {

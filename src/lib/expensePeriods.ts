@@ -194,6 +194,7 @@ export type CategorySlice = {
 export const CATEGORY_COLORS: Record<ExpenseCategoryId, string> = {
   food: '#2f6f8f',
   transport: '#3f8f6e',
+  travel: '#4a8aa3',
   home: '#b07a3a',
   shopping: '#8a6a45',
   health: '#4f8a86',

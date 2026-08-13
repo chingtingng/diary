@@ -80,6 +80,8 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
   const daysInMonth = endOfMonth(month).getDate()
   const showMonthGrid = mode === 'emoji' || (mode === 'board' && boardScope === 'month')
   const showYearBoard = mode === 'board' && boardScope === 'year'
+  const viewingThisMonth = isSameMonth(month, new Date())
+  const viewingThisYear = year === new Date().getFullYear()
 
   const handleExport = async () => {
     setExporting(true)
@@ -171,8 +173,9 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
               </button>
               <button
                 type="button"
-                className="today-btn"
+                className={`today-btn${viewingThisYear ? ' current' : ''}`}
                 onClick={() => setYear(new Date().getFullYear())}
+                disabled={viewingThisYear}
               >
                 This year
               </button>
@@ -199,8 +202,9 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
               </button>
               <button
                 type="button"
-                className="today-btn"
+                className={`today-btn${viewingThisMonth ? ' current' : ''}`}
                 onClick={() => setMonth(startOfMonth(new Date()))}
+                disabled={viewingThisMonth}
               >
                 Today
               </button>
