@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
+import { format, isWithinInterval } from 'date-fns'
 import {
-  addMonths,
-  endOfMonth,
-  format,
-  isSameMonth,
-  isWithinInterval,
-  startOfMonth,
-  subMonths,
-} from 'date-fns'
+  EXPENSE_PERIODS,
+  formatPeriodLabel,
+  getPeriodRange,
+  isCurrentPeriod,
+  periodEyebrow,
+  shiftPeriod,
+  summarizeCategories,
+  type ExpensePeriod,
+} from '../lib/expensePeriods'
 import {
   EXPENSE_CATEGORIES,
   getCategoryLabel,
@@ -15,6 +17,7 @@ import {
   type ExpenseCategoryId,
   type ExpenseInput,
 } from '../types/expense'
+import { CategoryPieChart } from './CategoryPieChart'
 
 interface ExpenseTrackerProps {
   expenses: Expense[]
@@ -34,13 +37,25 @@ function todayInputValue(): string {
   return format(new Date(), 'yyyy-MM-dd')
 }
 
+function listDateFormat(period: ExpensePeriod): string {
+  switch (period) {
+    case 'day':
+      return 'h:mm a'
+    case 'year':
+      return 'MMM d'
+    default:
+      return 'EEE, MMM d'
+  }
+}
+
 export function ExpenseTracker({
   expenses,
   loading,
   onAdd,
   onDelete,
 }: ExpenseTrackerProps) {
-  const [month, setMonth] = useState(() => startOfMonth(new Date()))
+  const [period, setPeriod] = useState<ExpensePeriod>('month')
+  const [anchor, setAnchor] = useState(() => new Date())
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [category, setCategory] = useState<ExpenseCategoryId>('food')
@@ -48,28 +63,29 @@ export function ExpenseTracker({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const monthExpenses = useMemo(() => {
-    const start = startOfMonth(month)
-    const end = endOfMonth(month)
-    return expenses.filter((expense) =>
-      isWithinInterval(new Date(expense.spentAt), { start, end })
-    )
-  }, [expenses, month])
+  const range = useMemo(() => getPeriodRange(anchor, period), [anchor, period])
+  const current = isCurrentPeriod(anchor, period)
 
-  const monthTotal = useMemo(
-    () => monthExpenses.reduce((sum, expense) => sum + expense.amount, 0),
-    [monthExpenses]
+  const periodExpenses = useMemo(() => {
+    return expenses.filter((expense) =>
+      isWithinInterval(new Date(expense.spentAt), range)
+    )
+  }, [expenses, range])
+
+  const periodTotal = useMemo(
+    () => periodExpenses.reduce((sum, expense) => sum + expense.amount, 0),
+    [periodExpenses]
   )
 
-  const categoryTotals = useMemo(() => {
-    const totals = new Map<ExpenseCategoryId, number>()
-    for (const expense of monthExpenses) {
-      totals.set(expense.category, (totals.get(expense.category) ?? 0) + expense.amount)
-    }
-    return [...totals.entries()]
-      .map(([id, total]) => ({ id, total, label: getCategoryLabel(id) }))
-      .sort((a, b) => b.total - a.total)
-  }, [monthExpenses])
+  const categorySlices = useMemo(
+    () => summarizeCategories(periodExpenses),
+    [periodExpenses]
+  )
+
+  const handlePeriodChange = (next: ExpensePeriod) => {
+    setPeriod(next)
+    setAnchor(new Date())
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,6 +110,7 @@ export function ExpenseTracker({
       setNote('')
       setCategory('food')
       setSpentOn(todayInputValue())
+      setAnchor(spentAt)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save expense')
     } finally {
@@ -105,46 +122,67 @@ export function ExpenseTracker({
     <div className="expenses-view">
       <div className="expenses-toolbar">
         <div>
-          <p className="eyebrow">This month</p>
-          <h2 className="expenses-title">{format(month, 'MMMM yyyy')}</h2>
+          <p className="eyebrow">{periodEyebrow(period, current)}</p>
+          <h2 className="expenses-title">{formatPeriodLabel(anchor, period)}</h2>
           <p className="expenses-subtitle">
-            {monthExpenses.length === 0
+            {periodExpenses.length === 0
               ? 'No spending logged yet'
-              : `${monthExpenses.length} ${monthExpenses.length === 1 ? 'entry' : 'entries'}`}
+              : `${periodExpenses.length} ${periodExpenses.length === 1 ? 'entry' : 'entries'}`}
           </p>
         </div>
         <div className="calendar-nav">
-          <button type="button" onClick={() => setMonth((m) => subMonths(m, 1))} aria-label="Previous month">
+          <button
+            type="button"
+            onClick={() => setAnchor((value) => shiftPeriod(value, period, -1))}
+            aria-label={`Previous ${period}`}
+          >
             ←
           </button>
           <button
             type="button"
             className="today-btn"
-            onClick={() => setMonth(startOfMonth(new Date()))}
-            disabled={isSameMonth(month, new Date())}
+            onClick={() => setAnchor(new Date())}
+            disabled={current}
           >
             Today
           </button>
-          <button type="button" onClick={() => setMonth((m) => addMonths(m, 1))} aria-label="Next month">
+          <button
+            type="button"
+            onClick={() => setAnchor((value) => shiftPeriod(value, period, 1))}
+            aria-label={`Next ${period}`}
+          >
             →
           </button>
         </div>
       </div>
 
-      <div className="expenses-total">
-        <span className="expenses-total-label">Spent</span>
-        <span className="expenses-total-amount">{formatMoney(monthTotal)}</span>
+      <div className="segmented expense-period-tabs" role="tablist" aria-label="Breakdown period">
+        {EXPENSE_PERIODS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={period === item.id}
+            className={period === item.id ? 'active' : ''}
+            onClick={() => handlePeriodChange(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
-      {categoryTotals.length > 0 && (
-        <ul className="expenses-breakdown" aria-label="Spending by category">
-          {categoryTotals.map((item) => (
-            <li key={item.id}>
-              <span>{item.label}</span>
-              <span>{formatMoney(item.total)}</span>
-            </li>
-          ))}
-        </ul>
+      <div className="expenses-total">
+        <span className="expenses-total-label">Spent</span>
+        <span className="expenses-total-amount">{formatMoney(periodTotal)}</span>
+      </div>
+
+      {categorySlices.length > 0 && (
+        <section className="expense-category-section" aria-labelledby="expense-category-heading">
+          <h3 id="expense-category-heading" className="eyebrow">
+            By category
+          </h3>
+          <CategoryPieChart slices={categorySlices} totalLabel={formatMoney(periodTotal)} />
+        </section>
       )}
 
       <form className="expense-form" onSubmit={handleSubmit}>
@@ -209,16 +247,16 @@ export function ExpenseTracker({
       <section className="expenses-list-section" aria-label="Expenses">
         {loading ? (
           <p className="empty-list">Loading expenses…</p>
-        ) : monthExpenses.length === 0 ? (
-          <p className="empty-list">Nothing logged for this month yet.</p>
+        ) : periodExpenses.length === 0 ? (
+          <p className="empty-list">Nothing logged for this {period} yet.</p>
         ) : (
           <ul className="expenses-list">
-            {monthExpenses.map((expense) => (
+            {periodExpenses.map((expense) => (
               <li key={expense.id} className="expense-item">
                 <div className="expense-item-main">
                   <span className="expense-item-amount">{formatMoney(expense.amount)}</span>
                   <span className="expense-item-meta">
-                    {format(new Date(expense.spentAt), 'MMM d')} ·{' '}
+                    {format(new Date(expense.spentAt), listDateFormat(period))} ·{' '}
                     {getCategoryLabel(expense.category)}
                   </span>
                   {expense.note.trim() ? (
