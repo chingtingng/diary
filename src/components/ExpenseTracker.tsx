@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { format } from 'date-fns'
 import {
   EXPENSE_PERIODS,
   buildSpendingBars,
@@ -18,6 +17,7 @@ import {
 import { haptic } from '../lib/haptics'
 import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
 import { usePeriodSwipe } from '../hooks/usePeriodSwipe'
+import { atLocalNoon } from '../lib/dates'
 import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
 import {
   getCategoryLabel,
@@ -28,7 +28,7 @@ import {
 } from '../types/expense'
 import { CategoryField } from './CategoryField'
 import { CategoryIcon } from './CategoryIcon'
-import { DateTimePicker } from './DateTimePicker'
+import { DateField } from './DateField'
 import { ExpenseDetail } from './ExpenseDetail'
 import { ExpenseSwipeRow } from './ExpenseSwipeRow'
 import { PeriodAnchorPicker } from './PeriodAnchorPicker'
@@ -90,9 +90,7 @@ function ExpenseTxnRow({
           <span className="expense-item-note">
             {expense.note.trim() || getCategoryLabel(expense.category)}
           </span>
-          <span className="expense-item-meta">
-            {getCategoryLabel(expense.category)} • {format(new Date(expense.spentAt), 'h:mm a')}
-          </span>
+          <span className="expense-item-meta">{getCategoryLabel(expense.category)}</span>
         </div>
         <span className="expense-item-amount">${formatMoney(expense.amount)}</span>
       </button>
@@ -113,7 +111,7 @@ export function ExpenseTracker({
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [category, setCategory] = useState<ExpenseCategoryId>('food')
-  const [spentAt, setSpentAt] = useState(() => new Date())
+  const [spentAt, setSpentAt] = useState(() => atLocalNoon(new Date()))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -199,7 +197,7 @@ export function ExpenseTracker({
     setAmount('')
     setNote('')
     setCategory('food')
-    setSpentAt(new Date())
+    setSpentAt(atLocalNoon(new Date()))
     setError(null)
     setShowAddForm(false)
     setSwipeOpenId(null)
@@ -221,7 +219,7 @@ export function ExpenseTracker({
         amount: Math.round(parsed * 100) / 100,
         note,
         category,
-        spentAt: spentAt.toISOString(),
+        spentAt: atLocalNoon(spentAt).toISOString(),
       })
       resetAddForm()
       setAnchor(spentAt)
@@ -332,7 +330,7 @@ export function ExpenseTracker({
             className="expense-add-toggle"
             data-haptic="light"
             onClick={() => {
-              setSpentAt(period === 'day' ? anchor : new Date())
+              setSpentAt(atLocalNoon(period === 'day' ? anchor : new Date()))
               setShowAddForm(true)
             }}
           >
@@ -361,7 +359,7 @@ export function ExpenseTracker({
               />
             </label>
 
-            <DateTimePicker value={spentAt} onChange={setSpentAt} />
+            <DateField value={spentAt} onChange={setSpentAt} />
 
             <CategoryField value={category} onChange={setCategory} />
 

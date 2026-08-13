@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
+import { atLocalNoon } from '../lib/dates'
 import {
   getCategoryLabel,
   type Expense,
@@ -7,7 +8,7 @@ import {
   type ExpensePatch,
 } from '../types/expense'
 import { CategoryField } from './CategoryField'
-import { DateTimePicker } from './DateTimePicker'
+import { DateField } from './DateField'
 
 interface ExpenseDetailProps {
   expense: Expense
@@ -27,7 +28,7 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
   const [amount, setAmount] = useState(String(expense.amount))
   const [note, setNote] = useState(expense.note)
   const [category, setCategory] = useState<ExpenseCategoryId>(expense.category)
-  const [spentAt, setSpentAt] = useState(() => new Date(expense.spentAt))
+  const [spentAt, setSpentAt] = useState(() => atLocalNoon(new Date(expense.spentAt)))
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +40,7 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
     setAmount(String(expense.amount))
     setNote(expense.note)
     setCategory(expense.category)
-    setSpentAt(new Date(expense.spentAt))
+    setSpentAt(atLocalNoon(new Date(expense.spentAt)))
     setError(null)
     setSaved(false)
   }, [
@@ -62,7 +63,7 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
       return
     }
 
-    const nextSpentAt = spentAt.toISOString()
+    const nextSpentAt = atLocalNoon(spentAt).toISOString()
     setSaving(true)
     try {
       await onSave(expense.id, {
@@ -123,7 +124,7 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
           />
         </label>
 
-        <DateTimePicker
+        <DateField
           value={spentAt}
           onChange={(next) => {
             setSpentAt(next)
