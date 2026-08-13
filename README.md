@@ -48,7 +48,7 @@ supabase/migrations/006_drop_fun_category.sql
 
 These create the `entries` and `expenses` tables with row-level security so each user only sees their own data.
 
-**Expenses date + time:** `spent_at` is already a `timestamptz`, so no extra migration is needed to store time of day. The app writes a full timestamp when you set date and time in the UI.
+**Expenses date:** `spent_at` is a `timestamptz`. The UI is date-only; the app stores local noon so the calendar day is stable.
 
 ### 3. Configure environment variables
 
