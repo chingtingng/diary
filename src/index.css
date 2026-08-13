@@ -910,6 +910,27 @@ button:focus {
   touch-action: pan-y;
 }
 
+.native-select {
+  position: relative;
+  display: block;
+}
+
+.native-select select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+}
+
+.native-select-chevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ink-soft);
+}
+
 .expense-form input:focus,
 .expense-form select:focus {
   outline: none;

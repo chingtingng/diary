@@ -41,10 +41,10 @@ function Glyph({ category }: { category: ExpenseCategoryId }) {
           strokeLinejoin="round"
         />
       )
-    case 'home':
+    case 'hobbies':
       return (
         <path
-          d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-7.5Z"
+          d="M10 5v10.5a2.5 2.5 0 1 1-1.6-2.3V8.2L18 6.4v6.6a2.5 2.5 0 1 1-1.6-2.3V5L10 5Z"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.6"

@@ -20,18 +20,17 @@ import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
 import { usePeriodSwipe } from '../hooks/usePeriodSwipe'
 import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
 import {
-  EXPENSE_CATEGORIES,
   getCategoryLabel,
   type Expense,
   type ExpenseCategoryId,
   type ExpenseInput,
   type ExpensePatch,
 } from '../types/expense'
+import { CategoryField } from './CategoryField'
 import { CategoryIcon } from './CategoryIcon'
 import { DateTimePicker } from './DateTimePicker'
 import { ExpenseDetail } from './ExpenseDetail'
 import { ExpenseSwipeRow } from './ExpenseSwipeRow'
-import { MenuSelect } from './MenuSelect'
 import { PeriodAnchorPicker } from './PeriodAnchorPicker'
 import { SpendingBarChart } from './SpendingBarChart'
 
@@ -364,13 +363,7 @@ export function ExpenseTracker({
 
             <DateTimePicker value={spentAt} onChange={setSpentAt} />
 
-            <MenuSelect
-              label="Category"
-              variant="field"
-              value={category}
-              options={EXPENSE_CATEGORIES}
-              onChange={setCategory}
-            />
+            <CategoryField value={category} onChange={setCategory} />
 
             <label>
               Note

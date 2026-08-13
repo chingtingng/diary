@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
 import {
-  EXPENSE_CATEGORIES,
   getCategoryLabel,
   type Expense,
   type ExpenseCategoryId,
   type ExpensePatch,
 } from '../types/expense'
+import { CategoryField } from './CategoryField'
 import { DateTimePicker } from './DateTimePicker'
-import { MenuSelect } from './MenuSelect'
 
 interface ExpenseDetailProps {
   expense: Expense
@@ -132,11 +131,8 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
           }}
         />
 
-        <MenuSelect
-          label="Category"
-          variant="field"
+        <CategoryField
           value={category}
-          options={EXPENSE_CATEGORIES}
           onChange={(next) => {
             setCategory(next)
             setSaved(false)
