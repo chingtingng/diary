@@ -168,19 +168,20 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
         {error && <p className="expense-form-error">{error}</p>}
         {saved && !error && <p className="expense-form-saved">Saved</p>}
 
-        <button type="submit" className="expense-submit" disabled={saving || deleting}>
-          {saving ? 'Saving…' : 'Save changes'}
-        </button>
+        <div className="expense-detail-actions">
+          <button type="submit" className="expense-submit" disabled={saving || deleting}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          <button
+            type="button"
+            className="expense-detail-delete"
+            onClick={handleDelete}
+            disabled={deleting || saving}
+          >
+            {deleting ? 'Deleting…' : 'Delete expense'}
+          </button>
+        </div>
       </form>
-
-      <button
-        type="button"
-        className="expense-detail-delete"
-        onClick={handleDelete}
-        disabled={deleting || saving}
-      >
-        {deleting ? 'Deleting…' : 'Delete expense'}
-      </button>
     </div>
   )
 }
