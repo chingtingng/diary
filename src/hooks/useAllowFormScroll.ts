@@ -33,6 +33,7 @@ export function useAllowFormScroll(ref: RefObject<HTMLElement | null>, enabled =
       if (!moved) return
       const target = event.target
       if (!(target instanceof HTMLElement)) return
+      if (target.closest('.date-field-calendar')) return
       if (target.closest(INTERACTIVE)) event.preventDefault()
     }
 
