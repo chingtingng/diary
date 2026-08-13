@@ -385,7 +385,9 @@ button {
   width: 100%;
   padding: 11px 13px;
   border-radius: 14px;
-  border-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: var(--line);
+  background: rgb(255 255 255 / 80%);
+  color: var(--ink);
 }
 
 .menu-select-trigger:hover,
@@ -393,6 +395,13 @@ button {
   background: color-mix(in srgb, var(--accent-soft) 72%, white);
   border-color: color-mix(in srgb, var(--accent) 18%, transparent);
   transform: translateY(-1px);
+}
+
+.menu-select-field .menu-select-trigger:hover,
+.menu-select-field .menu-select-trigger.open {
+  background: var(--paper-solid);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 .menu-select-value {
