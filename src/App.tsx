@@ -3,7 +3,7 @@ import { AuthForm } from './components/AuthForm'
 import { EntryEditor, type EntryDraft } from './components/EntryEditor'
 import { EntryList } from './components/EntryList'
 import { ExpenseTracker } from './components/ExpenseTracker'
-import { Header, type AppMode, type AppView } from './components/Header'
+import { Header, type AppView } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
 import { exportAndDownload } from './lib/export'
 import { exportExpensesAndDownload } from './lib/expenseExport'
@@ -36,7 +36,6 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
-  const [mode, setMode] = useState<AppMode>('journal')
   const [view, setView] = useState<AppView>('journal')
   const draftRef = useRef<EntryDraft | null>(null)
   const selectedIdRef = useRef<string | null>(null)
@@ -166,7 +165,7 @@ function App() {
 
   const handleViewChange = useCallback(
     async (next: AppView) => {
-      if (next === 'calendar') {
+      if (next === 'calendar' || next === 'expenses') {
         const discarded = await discardBlankEntry(selectedIdRef.current)
         if (discarded) selectEntry(null)
         setShowList(true)
@@ -176,20 +175,8 @@ function App() {
     [discardBlankEntry, selectEntry]
   )
 
-  const handleModeChange = useCallback(
-    async (next: AppMode) => {
-      if (next === 'expenses') {
-        const discarded = await discardBlankEntry(selectedIdRef.current)
-        if (discarded) selectEntry(null)
-        setShowList(true)
-      }
-      setMode(next)
-    },
-    [discardBlankEntry, selectEntry]
-  )
-
   const handleExport = useCallback(() => {
-    if (mode === 'expenses') {
+    if (view === 'expenses') {
       if (expenses.length === 0) {
         alert('No expenses to export yet.')
         return
@@ -204,7 +191,7 @@ function App() {
       return
     }
     exportAndDownload(exportable)
-  }, [entries, expenses, mode])
+  }, [entries, expenses, view])
 
   if (isSupabaseConfigured && authLoading) {
     return (
@@ -226,14 +213,12 @@ function App() {
         storageMode={storageMode}
         onSignOut={isSupabaseConfigured ? signOut : undefined}
         username={username}
-        mode={mode}
-        onModeChange={handleModeChange}
         view={view}
         onViewChange={handleViewChange}
       />
 
       <main className="main">
-        {mode === 'expenses' ? (
+        {view === 'expenses' ? (
           <div className="expenses-shell">
             <ExpenseTracker
               expenses={expenses}
@@ -259,7 +244,7 @@ function App() {
               aria-hidden={showList}
               style={{ visibility: showList ? 'hidden' : 'visible' }}
             >
-              ← Pages
+              ← Journal
             </button>
 
             <div className="layout">

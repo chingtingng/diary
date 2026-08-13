@@ -23,7 +23,7 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
-Use the **Journal / Expenses** switcher in the header to move between modes. Inside Journal, **Pages** and **Calendar** work as before.
+Use the header tabs — **Journal**, **Calendar**, and **Expenses** — to move between views.
 
 ## Supabase Setup (Cloud Sync)
 

@@ -3,16 +3,13 @@ import type { StorageMode } from '../lib/storage'
 import { MenuDots } from './MenuDots'
 import { OpenBookMark } from './OpenBookMark'
 
-export type AppMode = 'journal' | 'expenses'
-export type AppView = 'journal' | 'calendar'
+export type AppView = 'journal' | 'calendar' | 'expenses'
 
 interface HeaderProps {
   onExport: () => void
   storageMode: StorageMode
   onSignOut?: () => void
   username?: string
-  mode: AppMode
-  onModeChange: (mode: AppMode) => void
   view: AppView
   onViewChange: (view: AppView) => void
 }
@@ -22,8 +19,6 @@ export function Header({
   storageMode,
   onSignOut,
   username,
-  mode,
-  onModeChange,
   view,
   onViewChange,
 }: HeaderProps) {
@@ -39,43 +34,29 @@ export function Header({
         </div>
       </div>
 
-      <div className="header-nav">
-        <nav className="mode-tabs" aria-label="App mode">
-          <button
-            type="button"
-            className={mode === 'journal' ? 'active' : ''}
-            onClick={() => onModeChange('journal')}
-          >
-            Journal
-          </button>
-          <button
-            type="button"
-            className={mode === 'expenses' ? 'active' : ''}
-            onClick={() => onModeChange('expenses')}
-          >
-            Expenses
-          </button>
-        </nav>
-
-        {mode === 'journal' && (
-          <nav className="view-tabs" aria-label="Journal views">
-            <button
-              type="button"
-              className={view === 'journal' ? 'active' : ''}
-              onClick={() => onViewChange('journal')}
-            >
-              Pages
-            </button>
-            <button
-              type="button"
-              className={view === 'calendar' ? 'active' : ''}
-              onClick={() => onViewChange('calendar')}
-            >
-              Calendar
-            </button>
-          </nav>
-        )}
-      </div>
+      <nav className="view-tabs" aria-label="Views">
+        <button
+          type="button"
+          className={view === 'journal' ? 'active' : ''}
+          onClick={() => onViewChange('journal')}
+        >
+          Journal
+        </button>
+        <button
+          type="button"
+          className={view === 'calendar' ? 'active' : ''}
+          onClick={() => onViewChange('calendar')}
+        >
+          Calendar
+        </button>
+        <button
+          type="button"
+          className={view === 'expenses' ? 'active' : ''}
+          onClick={() => onViewChange('expenses')}
+        >
+          Expenses
+        </button>
+      </nav>
 
       <div className="header-actions">
         <button type="button" className="header-btn" onClick={onExport}>
