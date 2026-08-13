@@ -16,6 +16,7 @@ import {
   type ExpensePeriod,
 } from '../lib/expensePeriods'
 import { haptic } from '../lib/haptics'
+import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
 import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
 import {
   EXPENSE_CATEGORIES,
@@ -77,6 +78,8 @@ export function ExpenseTracker({
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set())
   const gestureStartX = useRef<number | null>(null)
   const gestureStartY = useRef<number | null>(null)
+  const addFormRef = useRef<HTMLFormElement>(null)
+  useAllowFormScroll(addFormRef, showAddForm)
 
   const selectedExpense = useMemo(
     () => expenses.find((expense) => expense.id === selectedId) ?? null,
@@ -305,7 +308,7 @@ export function ExpenseTracker({
             + Add expense
           </button>
         ) : (
-          <form className="expense-form" onSubmit={handleSubmit}>
+          <form ref={addFormRef} className="expense-form" onSubmit={handleSubmit}>
             <div className="expense-form-heading">
               <p className="eyebrow">Add expense</p>
               <button type="button" className="expense-form-cancel" onClick={resetAddForm}>
@@ -324,7 +327,6 @@ export function ExpenseTracker({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
-                autoFocus
               />
             </label>
 

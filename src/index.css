@@ -85,6 +85,18 @@ button {
   border: none;
   background: none;
   color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus {
+  outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 /* Overflow menu glyph (SVG circles — CSS/unicode dots often render squashed) */
@@ -136,10 +148,26 @@ button {
 /* iOS haptic switch overlays injected by @haptics/core */
 [data-haptic] {
   isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-haptic]:focus,
+[data-haptic]:focus-visible {
+  outline: none;
 }
 
 [data-haptic-overlay] {
   z-index: 1;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+}
+
+[data-haptic-overlay]:focus,
+[data-haptic-overlay]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .header-mark,
@@ -437,6 +465,7 @@ button {
   border-color: var(--line);
   background: rgb(255 255 255 / 80%);
   color: var(--ink);
+  touch-action: pan-y;
 }
 
 .menu-select-trigger:hover,
@@ -593,6 +622,7 @@ button {
   justify-content: center;
   gap: 6px;
   width: 100%;
+  margin-top: 8px;
   padding: 11px 14px;
   background: var(--expense-accent);
   color: white;
@@ -845,6 +875,11 @@ button {
   gap: 14px;
 }
 
+.expense-summary-card > .expense-form {
+  margin-top: 12px;
+  padding-top: 4px;
+}
+
 .expense-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -870,6 +905,7 @@ button {
   border-radius: 14px;
   background: rgb(255 255 255 / 80%);
   color: var(--ink);
+  touch-action: pan-y;
 }
 
 .expense-form input:focus,
@@ -1077,6 +1113,7 @@ button {
   background: rgb(255 255 255 / 80%);
   color: var(--ink);
   text-align: left;
+  touch-action: pan-y;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
@@ -1198,72 +1235,66 @@ button {
   text-align: center;
 }
 
-.datetime-time-list {
-  height: 168px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding: 6px;
+.datetime-time-wheel {
+  --wheel-h: 200px;
+  --wheel-item-h: 40px;
+  position: relative;
+  height: var(--wheel-h);
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgb(255 255 255 / 70%);
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ink) 20%, transparent) transparent;
+  overflow: hidden;
 }
 
-.datetime-time-list:not(.fill) {
-  padding-block: 56px;
+.datetime-time-wheel-highlight {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 50%;
+  height: var(--wheel-item-h);
+  margin-top: calc(var(--wheel-item-h) / -2);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.datetime-time-list {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  padding-block: calc((var(--wheel-h) - var(--wheel-item-h)) / 2);
 }
 
 .datetime-time-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.datetime-time-list::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ink) 18%, transparent);
-  border-radius: 999px;
-}
-
-.datetime-time-list.fill {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-
-.datetime-time-list.fill .datetime-time-option {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: none;
 }
 
 .datetime-time-option {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  padding: 8px 6px;
-  border-radius: 10px;
+  height: var(--wheel-item-h);
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
   font-size: var(--font-size-input);
   font-weight: 600;
   color: var(--ink-soft);
   text-align: center;
-  transition: background 0.12s, color 0.12s;
-}
-
-.datetime-time-option:hover {
-  background: var(--mist);
-  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
 }
 
 .datetime-time-option.active {
-  background: var(--accent-soft);
   color: var(--ink);
-}
-
-.datetime-time-option:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  outline-offset: -2px;
 }
 
 .datetime-time-presets {
@@ -2258,7 +2289,7 @@ button.year-board-cell:hover {
 }
 
 .spending-chart {
-  padding: 0;
+  padding: 0 0 6px;
 }
 
 .spending-chart-bars {
@@ -2378,6 +2409,13 @@ button.year-board-cell:hover {
   padding: 12px 0;
   border-top: 1px solid var(--line);
   text-align: left;
+}
+
+.expense-week-row:focus,
+.expense-week-row:focus-visible,
+.expense-month-row:focus,
+.expense-month-row:focus-visible {
+  outline: none;
 }
 
 .expense-week-list > li:first-child .expense-week-row,
