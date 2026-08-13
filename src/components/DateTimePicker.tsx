@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   addMonths,
   eachDayOfInterval,
@@ -30,6 +30,98 @@ function clampHour12(hour24: number): { hour12: number; meridiem: 'AM' | 'PM' } 
 function toHour24(hour12: number, meridiem: 'AM' | 'PM'): number {
   if (meridiem === 'AM') return hour12 === 12 ? 0 : hour12
   return hour12 === 12 ? 12 : hour12 + 12
+}
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const hour = i + 1
+  return { id: hour, label: String(hour) }
+})
+
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => ({
+  id: i,
+  label: String(i).padStart(2, '0'),
+}))
+
+const PERIOD_OPTIONS = [
+  { id: 'AM' as const, label: 'AM' },
+  { id: 'PM' as const, label: 'PM' },
+]
+
+interface TimeColumnOption<T extends string | number> {
+  id: T
+  label: string
+}
+
+function TimeColumn<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+  fill = false,
+}: {
+  label: string
+  options: TimeColumnOption<T>[]
+  value: T
+  onChange: (next: T) => void
+  fill?: boolean
+}) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const selectedRef = useRef<HTMLButtonElement>(null)
+  const labelId = useId()
+
+  useLayoutEffect(() => {
+    const list = listRef.current
+    const selected = selectedRef.current
+    if (!list || !selected) return
+    list.scrollTop = selected.offsetTop - list.clientHeight / 2 + selected.clientHeight / 2
+  }, [value])
+
+  const move = (delta: number) => {
+    const index = options.findIndex((option) => option.id === value)
+    const next = options[Math.min(Math.max(index + delta, 0), options.length - 1)]
+    if (next && next.id !== value) onChange(next.id)
+  }
+
+  return (
+    <div className="datetime-time-column">
+      <span className="datetime-time-column-label" id={labelId}>
+        {label}
+      </span>
+      <div
+        ref={listRef}
+        className={`datetime-time-list${fill ? ' fill' : ''}`}
+        role="listbox"
+        aria-labelledby={labelId}
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            move(1)
+          } else if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            move(-1)
+          }
+        }}
+      >
+        {options.map((option) => {
+          const active = option.id === value
+          return (
+            <button
+              key={String(option.id)}
+              type="button"
+              role="option"
+              aria-selected={active}
+              ref={active ? selectedRef : undefined}
+              className={`datetime-time-option${active ? ' active' : ''}`}
+              onClick={() => onChange(option.id)}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export function DateTimePicker({ value, onChange, label = 'When' }: DateTimePickerProps) {
@@ -159,42 +251,25 @@ export function DateTimePicker({ value, onChange, label = 'When' }: DateTimePick
       {openPanel === 'time' && (
         <div className="datetime-popover datetime-time-popover" role="dialog" aria-label="Choose time">
           <div className="datetime-time-columns">
-            <label>
-              Hour
-              <select
-                value={hour12}
-                onChange={(e) => setTimePart(Number(e.target.value), minute, meridiem)}
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
-                  <option key={hour} value={hour}>
-                    {hour}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Minute
-              <select
-                value={minute}
-                onChange={(e) => setTimePart(hour12, Number(e.target.value), meridiem)}
-              >
-                {Array.from({ length: 60 }, (_, i) => i).map((m) => (
-                  <option key={m} value={m}>
-                    {String(m).padStart(2, '0')}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Period
-              <select
-                value={meridiem}
-                onChange={(e) => setTimePart(hour12, minute, e.target.value as 'AM' | 'PM')}
-              >
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
-            </label>
+            <TimeColumn
+              label="Hour"
+              options={HOUR_OPTIONS}
+              value={hour12}
+              onChange={(next) => setTimePart(next, minute, meridiem)}
+            />
+            <TimeColumn
+              label="Minute"
+              options={MINUTE_OPTIONS}
+              value={minute}
+              onChange={(next) => setTimePart(hour12, next, meridiem)}
+            />
+            <TimeColumn
+              label="Period"
+              options={PERIOD_OPTIONS}
+              value={meridiem}
+              onChange={(next) => setTimePart(hour12, minute, next)}
+              fill
+            />
           </div>
           <div className="datetime-time-presets" role="group" aria-label="Quick times">
             {[
