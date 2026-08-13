@@ -24,9 +24,9 @@
   --line: rgb(28 36 48 / 8%);
   --accent: #2f6f8f;
   --accent-soft: #d7ebf4;
-  --expense-accent: #2c5282;
-  --expense-accent-soft: #e8eef5;
-  --expense-track: #e6ebf2;
+  --expense-accent: var(--accent);
+  --expense-accent-soft: var(--accent-soft);
+  --expense-track: var(--mist-deep);
   --danger: #c45c5c;
   --shadow: 0 10px 40px rgb(28 36 48 / 6%);
   --radius: 18px;
@@ -35,7 +35,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --font-display: 'Glacial Indifference', 'Poppins', 'Montserrat', sans-serif;
   --font-ui: 'Poppins', 'Glacial Indifference', 'Montserrat', sans-serif;
-  --font-size-input: 0.875rem;
+  /* 16px minimum — iOS Safari zooms focused inputs below this size */
+  --font-size-input: 1rem;
   font-family: var(--font-ui);
   line-height: 1.5;
   color: var(--ink);
@@ -936,9 +937,12 @@ button {
 
 .expense-item-main {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
   min-width: 0;
+  text-align: left;
 }
 
 .expense-item-amount {
@@ -2170,22 +2174,22 @@ button.year-board-cell:hover {
   padding: 3px;
   height: 38px;
   border-radius: 12px;
-  background: #e8edf3;
+  background: var(--mist-deep);
 }
 
 .expense-period-tabs button {
   border-radius: 10px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--ink-soft);
   background: transparent;
   transition: background 0.15s, color 0.15s;
 }
 
 .expense-period-tabs button.active {
-  background: var(--expense-accent);
+  background: var(--accent);
   color: white;
-  box-shadow: 0 3px 10px rgb(44 82 130 / 20%);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .expense-summary-card {
@@ -2296,17 +2300,17 @@ button.year-board-cell:hover {
 .spending-chart-fill {
   width: 100%;
   border-radius: 6px 6px 2px 2px;
-  background: #d5dde8;
+  background: color-mix(in srgb, var(--accent) 14%, white);
   min-height: 0;
   transition: height 0.3s ease, background 0.2s ease;
 }
 
 .spending-chart-col.has-value .spending-chart-fill {
-  background: #a8b7cb;
+  background: color-mix(in srgb, var(--accent) 42%, white);
 }
 
 .spending-chart-col.active .spending-chart-fill {
-  background: var(--expense-accent);
+  background: var(--accent);
 }
 
 .spending-chart-label {
@@ -2374,11 +2378,64 @@ button.year-board-cell:hover {
   border-top: none;
 }
 
+.expense-week-day {
+  border-top: 1px solid var(--line);
+}
+
+.expense-week-list > li:first-child.expense-week-day {
+  border-top: none;
+}
+
+.expense-week-day > .expense-week-row {
+  border-top: none;
+}
+
 .expense-week-row-copy {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  align-items: flex-start;
   gap: 1px;
   min-width: 0;
+  text-align: left;
+}
+
+.expense-week-row-chevron {
+  flex-shrink: 0;
+  width: 1.1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  transition: transform 0.18s ease;
+}
+
+.expense-week-day.expanded .expense-week-row-chevron {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+.expense-week-day-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.expense-week-day.expanded .expense-week-day-panel {
+  grid-template-rows: 1fr;
+}
+
+.expense-week-day-panel-inner {
+  overflow: hidden;
+}
+
+.expense-week-day-panel .expenses-list {
+  padding: 0 0 8px 2px;
+  gap: 0;
+}
+
+.expense-week-day-panel .expense-item {
+  padding-left: 4px;
 }
 
 .expense-week-row-label,
@@ -2462,7 +2519,7 @@ button.year-board-cell:hover {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: #f7f9fc;
+  background: color-mix(in srgb, var(--accent-soft) 55%, white);
 }
 
 .period-picker-header {

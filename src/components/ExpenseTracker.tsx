@@ -73,6 +73,7 @@ export function ExpenseTracker({
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set())
   const gestureStartX = useRef<number | null>(null)
   const gestureStartY = useRef<number | null>(null)
 
@@ -119,6 +120,16 @@ export function ExpenseTracker({
     setAnchor(new Date())
     setPickerOpen(false)
     setShowAddForm(false)
+    setExpandedWeekDays(new Set())
+  }
+
+  const toggleWeekDay = (key: string) => {
+    setExpandedWeekDays((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   const resetAddForm = () => {
@@ -170,6 +181,7 @@ export function ExpenseTracker({
     gestureStartY.current = null
     if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.25) return
     if (showAddForm || pickerOpen) return
+    setExpandedWeekDays(new Set())
     setAnchor((value) => shiftPeriod(value, period, dx < 0 ? 1 : -1))
   }
 
@@ -258,7 +270,10 @@ export function ExpenseTracker({
           <PeriodAnchorPicker
             period={period}
             value={anchor}
-            onChange={setAnchor}
+            onChange={(next) => {
+              setExpandedWeekDays(new Set())
+              setAnchor(next)
+            }}
             onClose={() => setPickerOpen(false)}
           />
         )}
@@ -377,28 +392,68 @@ export function ExpenseTracker({
             </ul>
           ) : period === 'week' ? (
             <ul className="expense-week-list">
-              {weekGroups.map((group) => (
-                <li key={group.key}>
-                  <button
-                    type="button"
-                    className="expense-week-row"
-                    data-haptic="select"
-                    onClick={() => {
-                      setPeriod('day')
-                      writeExpenseFilter('day')
-                      setAnchor(group.date)
-                    }}
+              {weekGroups.map((group) => {
+                const expanded = expandedWeekDays.has(group.key)
+                return (
+                  <li
+                    key={group.key}
+                    className={`expense-week-day${expanded ? ' expanded' : ''}`}
                   >
-                    <div className="expense-week-row-copy">
-                      <span className="expense-week-row-label">{group.label}</span>
-                      <span className="expense-week-row-meta">
-                        {entryCountLabel(group.items.length)}
+                    <button
+                      type="button"
+                      className="expense-week-row"
+                      data-haptic="select"
+                      aria-expanded={expanded}
+                      onClick={() => toggleWeekDay(group.key)}
+                    >
+                      <span className="expense-week-row-chevron" aria-hidden>
+                        ›
                       </span>
+                      <div className="expense-week-row-copy">
+                        <span className="expense-week-row-label">{group.label}</span>
+                        <span className="expense-week-row-meta">
+                          {entryCountLabel(group.items.length)}
+                        </span>
+                      </div>
+                      <span className="expense-week-row-total">${formatMoney(group.total)}</span>
+                    </button>
+                    <div
+                      className="expense-week-day-panel"
+                      inert={!expanded ? true : undefined}
+                    >
+                      <div className="expense-week-day-panel-inner">
+                        <ul className="expenses-list expense-txn-list">
+                          {group.items.map((expense) => (
+                            <li key={expense.id}>
+                              <button
+                                type="button"
+                                className="expense-item expense-item-button expense-txn-row"
+                                data-haptic="select"
+                                tabIndex={expanded ? 0 : -1}
+                                onClick={() => setSelectedId(expense.id)}
+                              >
+                                <CategoryIcon category={expense.category} size={36} />
+                                <div className="expense-item-main">
+                                  <span className="expense-item-note">
+                                    {expense.note.trim() || getCategoryLabel(expense.category)}
+                                  </span>
+                                  <span className="expense-item-meta">
+                                    {getCategoryLabel(expense.category)} •{' '}
+                                    {format(new Date(expense.spentAt), 'h:mm a')}
+                                  </span>
+                                </div>
+                                <span className="expense-item-amount">
+                                  ${formatMoney(expense.amount)}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                    <span className="expense-week-row-total">${formatMoney(group.total)}</span>
-                  </button>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           ) : period === 'month' ? (
             <ul className="expense-category-list">

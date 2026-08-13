@@ -339,13 +339,13 @@ export type CategorySlice = {
   color: string
 }
 
-/** Slate-forward palette aligned with the expense mockup. */
+/** Category palette keyed off the journal accent (#2f6f8f). */
 export const CATEGORY_COLORS: Record<ExpenseCategoryId, string> = {
-  food: '#2c5282',
-  transport: '#2f6f8f',
-  travel: '#3d6e8c',
-  home: '#4a6fa5',
-  shopping: '#5b6b8c',
+  food: '#2f6f8f',
+  transport: '#4a8fa8',
+  travel: '#3d7a6e',
+  home: '#5b7d9a',
+  shopping: '#6d8b9c',
   health: '#3f8f6e',
   fun: '#b2654d',
   other: '#6d7684',

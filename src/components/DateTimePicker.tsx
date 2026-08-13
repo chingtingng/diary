@@ -72,9 +72,17 @@ function TimeColumn<T extends string | number>({
   useLayoutEffect(() => {
     const list = listRef.current
     const selected = selectedRef.current
-    if (!list || !selected) return
-    list.scrollTop = selected.offsetTop - list.clientHeight / 2 + selected.clientHeight / 2
-  }, [value])
+    if (!list || !selected || fill) return
+    // getBoundingClientRect accounts for list padding; offsetTop often
+    // resolves against a farther offsetParent and leaves the value off-center.
+    const listRect = list.getBoundingClientRect()
+    const selectedRect = selected.getBoundingClientRect()
+    const delta =
+      selectedRect.top +
+      selectedRect.height / 2 -
+      (listRect.top + listRect.height / 2)
+    list.scrollTop += delta
+  }, [value, fill])
 
   const move = (delta: number) => {
     const index = options.findIndex((option) => option.id === value)
