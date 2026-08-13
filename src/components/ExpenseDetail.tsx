@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
 import {
   EXPENSE_CATEGORIES,
   getCategoryLabel,
@@ -93,23 +92,18 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
 
   return (
     <div className="expenses-view expense-detail">
-      <div className="insights-header">
+      <div className="expense-detail-top">
         <button type="button" className="insights-close" onClick={onBack} aria-label="Back to expenses">
           ←
         </button>
-        <h2 className="insights-title">Expense</h2>
-        <span className="insights-header-spacer" aria-hidden />
-      </div>
-
-      <div className="expense-detail-summary">
-        <p className="eyebrow">{getCategoryLabel(expense.category)}</p>
-        <p className="expense-detail-amount">{formatMoney(expense.amount)}</p>
-        <p className="expenses-subtitle">{format(new Date(expense.spentAt), 'EEEE, MMM d · h:mm a')}</p>
+        <div className="expense-detail-summary">
+          <p className="eyebrow">{getCategoryLabel(expense.category)}</p>
+          <p className="expense-detail-amount">{formatMoney(expense.amount)}</p>
+        </div>
+        <span className="expense-detail-top-spacer" aria-hidden />
       </div>
 
       <form className="expense-form" onSubmit={handleSave}>
-        <p className="eyebrow">Details</p>
-
         <label>
           Amount
           <input
