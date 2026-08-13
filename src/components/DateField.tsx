@@ -28,8 +28,6 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
   const [cursor, setCursor] = useState(() => startOfMonth(value))
   const rootRef = useRef<HTMLDivElement>(null)
   const ignoreTriggerClick = useRef(false)
-  const pointerStartY = useRef(0)
-  const pointerMoved = useRef(false)
 
   useEffect(() => {
     if (open) setCursor(startOfMonth(value))
@@ -113,14 +111,7 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
           className="date-field-calendar"
           role="dialog"
           aria-label="Choose date"
-          onPointerDown={(event) => {
-            event.stopPropagation()
-            pointerStartY.current = event.clientY
-            pointerMoved.current = false
-          }}
-          onPointerMove={(event) => {
-            if (Math.abs(event.clientY - pointerStartY.current) > 10) pointerMoved.current = true
-          }}
+          onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="date-field-cal-nav">
             <button
@@ -161,9 +152,7 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  onPointerUp={(event) => {
-                    if (event.pointerType === 'mouse' && event.button !== 0) return
-                    if (pointerMoved.current) return
+                  onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
                     pick(day)
