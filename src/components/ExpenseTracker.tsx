@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import {
   EXPENSE_PERIODS,
@@ -17,6 +17,7 @@ import {
 } from '../lib/expensePeriods'
 import { haptic } from '../lib/haptics'
 import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
+import { usePeriodSwipe } from '../hooks/usePeriodSwipe'
 import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
 import {
   EXPENSE_CATEGORIES,
@@ -29,6 +30,7 @@ import {
 import { CategoryIcon } from './CategoryIcon'
 import { DateTimePicker } from './DateTimePicker'
 import { ExpenseDetail } from './ExpenseDetail'
+import { ExpenseSwipeRow } from './ExpenseSwipeRow'
 import { MenuSelect } from './MenuSelect'
 import { PeriodAnchorPicker } from './PeriodAnchorPicker'
 import { SpendingBarChart } from './SpendingBarChart'
@@ -57,6 +59,48 @@ function entryCountLabel(count: number): string {
   return `${count} ${count === 1 ? 'expense' : 'expenses'}`
 }
 
+function ExpenseTxnRow({
+  expense,
+  revealed,
+  tabIndex,
+  onOpen,
+  onDelete,
+  onRevealedChange,
+}: {
+  expense: Expense
+  revealed: boolean
+  tabIndex?: number
+  onOpen: () => void
+  onDelete: () => void | Promise<void>
+  onRevealedChange: (open: boolean) => void
+}) {
+  return (
+    <ExpenseSwipeRow revealed={revealed} onRevealedChange={onRevealedChange} onDelete={onDelete}>
+      <button
+        type="button"
+        className="expense-item expense-item-button expense-txn-row"
+        data-haptic="select"
+        tabIndex={tabIndex}
+        onClick={() => {
+          if (revealed) onRevealedChange(false)
+          else onOpen()
+        }}
+      >
+        <CategoryIcon category={expense.category} size={36} />
+        <div className="expense-item-main">
+          <span className="expense-item-note">
+            {expense.note.trim() || getCategoryLabel(expense.category)}
+          </span>
+          <span className="expense-item-meta">
+            {getCategoryLabel(expense.category)} • {format(new Date(expense.spentAt), 'h:mm a')}
+          </span>
+        </div>
+        <span className="expense-item-amount">${formatMoney(expense.amount)}</span>
+      </button>
+    </ExpenseSwipeRow>
+  )
+}
+
 export function ExpenseTracker({
   expenses,
   loading,
@@ -76,10 +120,25 @@ export function ExpenseTracker({
   const [showAddForm, setShowAddForm] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set())
-  const gestureStartX = useRef<number | null>(null)
-  const gestureStartY = useRef<number | null>(null)
+  const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
   const addFormRef = useRef<HTMLFormElement>(null)
+  const periodHostRef = useRef<HTMLElement>(null)
+  const periodPaneRef = useRef<HTMLDivElement>(null)
   useAllowFormScroll(addFormRef, showAddForm)
+
+  const shiftAnchor = useCallback(
+    (direction: -1 | 1) => {
+      haptic('select')
+      setSwipeOpenId(null)
+      setExpandedWeekDays(new Set())
+      setAnchor((value) => shiftPeriod(value, period, direction))
+    },
+    [period]
+  )
+  usePeriodSwipe(periodHostRef, periodPaneRef, {
+    enabled: !showAddForm && !pickerOpen,
+    onShift: shiftAnchor,
+  })
 
   const selectedExpense = useMemo(
     () => expenses.find((expense) => expense.id === selectedId) ?? null,
@@ -125,6 +184,7 @@ export function ExpenseTracker({
     setPickerOpen(false)
     setShowAddForm(false)
     setExpandedWeekDays(new Set())
+    setSwipeOpenId(null)
   }
 
   const toggleWeekDay = (key: string) => {
@@ -143,6 +203,7 @@ export function ExpenseTracker({
     setSpentAt(new Date())
     setError(null)
     setShowAddForm(false)
+    setSwipeOpenId(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,24 +231,6 @@ export function ExpenseTracker({
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const beginGesture = (x: number, y: number) => {
-    gestureStartX.current = x
-    gestureStartY.current = y
-  }
-
-  const endGesture = (x: number, y: number) => {
-    if (gestureStartX.current == null || gestureStartY.current == null) return
-    const dx = x - gestureStartX.current
-    const dy = y - gestureStartY.current
-    gestureStartX.current = null
-    gestureStartY.current = null
-    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.25) return
-    if (showAddForm || pickerOpen) return
-    haptic('select')
-    setExpandedWeekDays(new Set())
-    setAnchor((value) => shiftPeriod(value, period, dx < 0 ? 1 : -1))
   }
 
   if (selectedId) {
@@ -230,25 +273,10 @@ export function ExpenseTracker({
         ))}
       </div>
 
-      <section
-        className="expense-summary-card"
-        onTouchStart={(event) => {
-          const touch = event.changedTouches[0]
-          beginGesture(touch.clientX, touch.clientY)
-        }}
-        onTouchEnd={(event) => {
-          const touch = event.changedTouches[0]
-          endGesture(touch.clientX, touch.clientY)
-        }}
-        onPointerDown={(event) => {
-          if (event.pointerType === 'mouse') beginGesture(event.clientX, event.clientY)
-        }}
-        onPointerUp={(event) => {
-          if (event.pointerType === 'mouse') endGesture(event.clientX, event.clientY)
-        }}
-      >
-        <div className="expense-card-header">
-          <div className="expense-card-heading">
+      <section ref={periodHostRef} className="expense-summary-card">
+        <div ref={periodPaneRef} className="expense-period-pane">
+          <div className="expense-card-header">
+            <div className="expense-card-heading">
             <button
               type="button"
               className="expense-period-title-btn"
@@ -264,7 +292,10 @@ export function ExpenseTracker({
             type="button"
             className={`expense-period-badge${current ? ' current' : ''}`}
             data-haptic="select"
-            onClick={() => setAnchor(new Date())}
+            onClick={() => {
+              setSwipeOpenId(null)
+              setAnchor(new Date())
+            }}
             disabled={current}
           >
             {currentPeriodBadge(period)}
@@ -277,6 +308,7 @@ export function ExpenseTracker({
             value={anchor}
             onChange={(next) => {
               setExpandedWeekDays(new Set())
+              setSwipeOpenId(null)
               setAnchor(next)
             }}
             onClose={() => setPickerOpen(false)}
@@ -373,24 +405,13 @@ export function ExpenseTracker({
             <ul className="expenses-list expense-txn-list">
               {dayItems.map((expense) => (
                 <li key={expense.id}>
-                  <button
-                    type="button"
-                    className="expense-item expense-item-button expense-txn-row"
-                    data-haptic="select"
-                    onClick={() => setSelectedId(expense.id)}
-                  >
-                    <CategoryIcon category={expense.category} size={36} />
-                    <div className="expense-item-main">
-                      <span className="expense-item-note">
-                        {expense.note.trim() || getCategoryLabel(expense.category)}
-                      </span>
-                      <span className="expense-item-meta">
-                        {getCategoryLabel(expense.category)} •{' '}
-                        {format(new Date(expense.spentAt), 'h:mm a')}
-                      </span>
-                    </div>
-                    <span className="expense-item-amount">${formatMoney(expense.amount)}</span>
-                  </button>
+                  <ExpenseTxnRow
+                    expense={expense}
+                    revealed={swipeOpenId === expense.id}
+                    onOpen={() => setSelectedId(expense.id)}
+                    onDelete={() => onDelete(expense.id)}
+                    onRevealedChange={(open) => setSwipeOpenId(open ? expense.id : null)}
+                  />
                 </li>
               ))}
             </ul>
@@ -438,27 +459,16 @@ export function ExpenseTracker({
                         <ul className="expenses-list expense-txn-list">
                           {group.items.map((expense) => (
                             <li key={expense.id}>
-                              <button
-                                type="button"
-                                className="expense-item expense-item-button expense-txn-row"
-                                data-haptic="select"
+                              <ExpenseTxnRow
+                                expense={expense}
+                                revealed={swipeOpenId === expense.id}
                                 tabIndex={expanded ? 0 : -1}
-                                onClick={() => setSelectedId(expense.id)}
-                              >
-                                <CategoryIcon category={expense.category} size={36} />
-                                <div className="expense-item-main">
-                                  <span className="expense-item-note">
-                                    {expense.note.trim() || getCategoryLabel(expense.category)}
-                                  </span>
-                                  <span className="expense-item-meta">
-                                    {getCategoryLabel(expense.category)} •{' '}
-                                    {format(new Date(expense.spentAt), 'h:mm a')}
-                                  </span>
-                                </div>
-                                <span className="expense-item-amount">
-                                  ${formatMoney(expense.amount)}
-                                </span>
-                              </button>
+                                onOpen={() => setSelectedId(expense.id)}
+                                onDelete={() => onDelete(expense.id)}
+                                onRevealedChange={(open) =>
+                                  setSwipeOpenId(open ? expense.id : null)
+                                }
+                              />
                             </li>
                           ))}
                         </ul>
@@ -512,6 +522,7 @@ export function ExpenseTracker({
         </div>
 
         <p className="expense-swipe-hint">{swipeHint(period)}</p>
+        </div>
       </section>
     </div>
   )

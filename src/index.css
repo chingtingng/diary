@@ -974,6 +974,40 @@ button:focus {
   transform: translateY(-1px);
 }
 
+.expense-swipe-front .expense-item-button:hover {
+  transform: none;
+}
+
+.expense-swipe-row {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-x pan-y;
+}
+
+.expense-swipe-delete {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  bottom: 4px;
+  z-index: 0;
+  width: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--danger);
+  color: white;
+}
+
+.expense-swipe-delete:disabled {
+  opacity: 0.7;
+}
+
+.expense-swipe-front {
+  position: relative;
+  z-index: 1;
+  background: var(--paper-solid);
+}
+
 .expense-item-button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 2px;
@@ -2241,7 +2275,16 @@ button.year-board-cell:hover {
   background: rgb(255 255 255 / 92%);
   border: 1px solid var(--line);
   box-shadow: 0 8px 28px rgb(28 36 48 / 6%);
-  touch-action: pan-y;
+  touch-action: pan-x pan-y;
+  overflow: hidden;
+  overscroll-behavior-x: none;
+}
+
+.expense-period-pane {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  will-change: transform, opacity;
 }
 
 .expense-card-header {
@@ -2696,5 +2739,11 @@ button.year-board-cell:hover {
   .expenses-shell {
     margin: 8px;
     padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expense-period-pane {
+    transition: none !important;
   }
 }
