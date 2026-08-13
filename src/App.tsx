@@ -302,16 +302,16 @@ function App() {
           <>
             <button
               type="button"
-              className="mobile-back"
+              className={`mobile-back${!showList ? ' visible' : ''}`}
               data-haptic="select"
               onClick={handleBackToList}
               aria-hidden={showList}
-              style={{ visibility: showList ? 'hidden' : 'visible' }}
+              hidden={showList}
             >
               ← Back to journal
             </button>
 
-            <div className="layout">
+            <div className={`layout${!showList ? ' has-back' : ''}`}>
               <div className={`panel list-panel ${showList ? 'visible' : ''}`}>
                 {loading ? (
                   <p className="loading-text">Loading entries…</p>

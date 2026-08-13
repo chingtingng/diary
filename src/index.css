@@ -338,7 +338,7 @@ button:focus {
 .mobile-back {
   display: none;
   align-self: flex-start;
-  padding: 8px 12px 4px 34px;
+  padding: 4px 12px 0 30px;
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
@@ -2163,13 +2163,25 @@ button.year-board-cell:hover {
 }
 
 @media (max-width: 768px) {
-  .mobile-back {
+  .mobile-back.visible {
     display: block;
   }
 
   .layout {
     grid-template-columns: 1fr;
-    padding: 12px;
+    padding: 8px 12px 12px;
+  }
+
+  .layout.has-back {
+    padding-top: 6px;
+  }
+
+  .new-entry-btn {
+    margin: 10px 16px 12px;
+  }
+
+  .editor {
+    padding-top: 12px;
   }
 
   .list-panel,
