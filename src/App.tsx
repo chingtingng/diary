@@ -2,13 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthForm } from './components/AuthForm'
 import { EntryEditor, type EntryDraft } from './components/EntryEditor'
 import { EntryList } from './components/EntryList'
-import { ExpenseBudgets } from './components/ExpenseBudgets'
 import { ExpenseInsights } from './components/ExpenseInsights'
-import { ExpenseShell } from './components/ExpenseShell'
 import { ExpenseTracker } from './components/ExpenseTracker'
 import { Header } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
-import type { ExpenseScreen } from './lib/navigation'
 import { exportAndDownload } from './lib/export'
 import { exportExpensesAndDownload } from './lib/expenseExport'
 import {
@@ -57,7 +54,6 @@ function App() {
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
   const [location, setLocation] = useState<AppLocation>(initialLocation)
-  const [expenseSearch, setExpenseSearch] = useState('')
   const view = location.view
   const expenseScreen = location.expenseScreen
   const draftRef = useRef<EntryDraft | null>(null)
@@ -229,13 +225,6 @@ function App() {
     goTo({ view: 'expenses', expenseScreen: 'insights' })
   }, [goTo])
 
-  const handleExpenseScreenChange = useCallback(
-    (screen: ExpenseScreen) => {
-      goTo({ view: 'expenses', expenseScreen: screen })
-    },
-    [goTo]
-  )
-
   const handleExport = useCallback(() => {
     if (view === 'expenses') {
       if (expenses.length === 0) {
@@ -267,44 +256,6 @@ function App() {
     return <AuthForm onSignIn={signIn} onSignUp={signUp} />
   }
 
-  if (view === 'expenses') {
-    return (
-      <div className="app expense-mode">
-        <ExpenseShell
-          screen={expenseScreen}
-          username={username}
-          storageMode={storageMode}
-          searchQuery={expenseSearch}
-          onSearchQueryChange={setExpenseSearch}
-          onExport={handleExport}
-          onScreenChange={handleExpenseScreenChange}
-          onOpenJournal={() => handleViewChange('journal')}
-          onOpenCalendar={() => handleViewChange('calendar')}
-          onSignOut={isSupabaseConfigured ? signOut : undefined}
-        >
-          <div className="expenses-shell">
-            {expenseScreen === 'insights' ? (
-              <ExpenseInsights expenses={expenses} />
-            ) : expenseScreen === 'budgets' ? (
-              <ExpenseBudgets expenses={expenses} />
-            ) : (
-              <ExpenseTracker
-                expenses={expenses}
-                loading={expensesLoading}
-                searchQuery={expenseSearch}
-                onAdd={addExpense}
-                onSave={async (id, patch) => {
-                  await saveExpense(id, patch)
-                }}
-                onDelete={removeExpense}
-              />
-            )}
-          </div>
-        </ExpenseShell>
-      </div>
-    )
-  }
-
   return (
     <div className="app">
       <Header
@@ -314,11 +265,32 @@ function App() {
         username={username}
         view={view}
         onViewChange={handleViewChange}
-        onOpenInsights={handleOpenInsights}
+        onOpenInsights={
+          view === 'expenses' && expenseScreen === 'list' ? handleOpenInsights : undefined
+        }
       />
 
       <main className="main">
-        {view === 'calendar' ? (
+        {view === 'expenses' ? (
+          <div className="expenses-shell">
+            {expenseScreen === 'insights' ? (
+              <ExpenseInsights
+                expenses={expenses}
+                onClose={() => goTo({ view: 'expenses', expenseScreen: 'list' })}
+              />
+            ) : (
+              <ExpenseTracker
+                expenses={expenses}
+                loading={expensesLoading}
+                onAdd={addExpense}
+                onSave={async (id, patch) => {
+                  await saveExpense(id, patch)
+                }}
+                onDelete={removeExpense}
+              />
+            )}
+          </div>
+        ) : view === 'calendar' ? (
           <div className="calendar-view">
             <MoodCalendar
               entries={entries}

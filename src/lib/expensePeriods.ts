@@ -51,8 +51,8 @@ export const INSIGHT_PERIODS: { id: ExpenseFilter; label: string }[] = [
   { id: 'all', label: 'All' },
 ]
 
-/** Mockup week chart uses Sunday–Saturday. */
-const WEEK_OPTIONS = { weekStartsOn: 0 as const }
+/** Week ranges match the iOS redesign (Mon–Sun), e.g. Aug 10 - Aug 16. */
+const WEEK_OPTIONS = { weekStartsOn: 1 as const }
 
 export type SpendingBar = {
   key: string
@@ -117,8 +117,8 @@ export function formatPeriodLabel(anchor: Date, period: ExpensePeriod): string {
       return format(start, 'EEEE, MMM d')
     case 'week': {
       const sameMonth = isSameMonth(start, end)
-      if (sameMonth) return `${format(start, 'MMM d')} – ${format(end, 'd')}`
-      return `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`
+      if (sameMonth) return `${format(start, 'MMM d')} - ${format(end, 'd')}`
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`
     }
     case 'month':
       return format(start, 'MMMM yyyy')
@@ -158,11 +158,24 @@ export function currentPeriodBadge(period: ExpensePeriod): string {
     case 'day':
       return 'Today'
     case 'week':
-      return 'This Week'
+      return 'This week'
     case 'month':
-      return 'This Month'
+      return 'This month'
     case 'year':
-      return 'This Year'
+      return 'This year'
+  }
+}
+
+export function swipeHint(period: ExpensePeriod): string {
+  switch (period) {
+    case 'day':
+      return 'Swipe left or right to change day'
+    case 'week':
+      return 'Swipe left or right to change week'
+    case 'month':
+      return 'Swipe left or right to change month'
+    case 'year':
+      return 'Swipe left or right to change year'
   }
 }
 

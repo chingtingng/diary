@@ -14,9 +14,8 @@ export function SpendingBarChart({ bars, density = 'week' }: SpendingBarChartPro
     <div className={`spending-chart spending-chart-${density}`} role="img" aria-label="Spending chart">
       <div className="spending-chart-bars">
         {bars.map((bar, index) => {
-          // Empty days still get a short stub so the week/month silhouette matches the mockup.
           const ratio = max > 0 ? bar.total / max : 0
-          const height = bar.total > 0 ? Math.max(ratio * 100, 14) : density === 'month' ? 6 : 10
+          const height = bar.total > 0 ? Math.max(ratio * 100, 16) : density === 'month' ? 8 : 12
           const showLabel =
             showEveryLabel || index === 0 || index === bars.length - 1 || index % labelStep === 0
           return (

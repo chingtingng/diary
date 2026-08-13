@@ -16,6 +16,7 @@ import { PeriodSelect } from './PeriodSelect'
 
 interface ExpenseInsightsProps {
   expenses: Expense[]
+  onClose: () => void
 }
 
 function formatMoney(amount: number): string {
@@ -25,7 +26,7 @@ function formatMoney(amount: number): string {
   })
 }
 
-export function ExpenseInsights({ expenses }: ExpenseInsightsProps) {
+export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
   const [period, setPeriod] = useState<ExpenseFilter>('month')
   const [anchor, setAnchor] = useState(() => new Date())
 
@@ -47,8 +48,18 @@ export function ExpenseInsights({ expenses }: ExpenseInsightsProps) {
 
   return (
     <div className="expenses-view insights-view">
-      <div className="insights-header insights-header-simple">
-        <h2 className="insights-title">Analytics</h2>
+      <div className="insights-header">
+        <button
+          type="button"
+          className="insights-close"
+          data-haptic="light"
+          onClick={onClose}
+          aria-label="Close insights"
+        >
+          ✕
+        </button>
+        <h2 className="insights-title">Insights</h2>
+        <span className="insights-header-spacer" aria-hidden />
       </div>
 
       <div className="insights-toolbar">
