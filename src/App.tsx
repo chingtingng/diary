@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthForm } from './components/AuthForm'
 import { EntryEditor, type EntryDraft } from './components/EntryEditor'
 import { EntryList } from './components/EntryList'
+import { ExpenseInsights } from './components/ExpenseInsights'
 import { ExpenseTracker } from './components/ExpenseTracker'
 import { Header, type AppView } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
@@ -37,6 +38,7 @@ function App() {
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
   const [view, setView] = useState<AppView>('journal')
+  const [expenseScreen, setExpenseScreen] = useState<'list' | 'insights'>('list')
   const draftRef = useRef<EntryDraft | null>(null)
   const selectedIdRef = useRef<string | null>(null)
   const discardingIdsRef = useRef(new Set<string>())
@@ -170,6 +172,7 @@ function App() {
         if (discarded) selectEntry(null)
         setShowList(true)
       }
+      if (next !== 'expenses') setExpenseScreen('list')
       setView(next)
     },
     [discardBlankEntry, selectEntry]
@@ -215,17 +218,29 @@ function App() {
         username={username}
         view={view}
         onViewChange={handleViewChange}
+        onOpenInsights={
+          view === 'expenses' && expenseScreen === 'list'
+            ? () => setExpenseScreen('insights')
+            : undefined
+        }
       />
 
       <main className="main">
         {view === 'expenses' ? (
           <div className="expenses-shell">
-            <ExpenseTracker
-              expenses={expenses}
-              loading={expensesLoading}
-              onAdd={addExpense}
-              onDelete={removeExpense}
-            />
+            {expenseScreen === 'insights' ? (
+              <ExpenseInsights
+                expenses={expenses}
+                onClose={() => setExpenseScreen('list')}
+              />
+            ) : (
+              <ExpenseTracker
+                expenses={expenses}
+                loading={expensesLoading}
+                onAdd={addExpense}
+                onDelete={removeExpense}
+              />
+            )}
           </div>
         ) : view === 'calendar' ? (
           <div className="calendar-view">

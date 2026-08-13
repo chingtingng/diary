@@ -12,6 +12,7 @@ interface HeaderProps {
   username?: string
   view: AppView
   onViewChange: (view: AppView) => void
+  onOpenInsights?: () => void
 }
 
 export function Header({
@@ -21,6 +22,7 @@ export function Header({
   username,
   view,
   onViewChange,
+  onOpenInsights,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -78,6 +80,19 @@ export function Header({
           <>
             <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
             <div className="header-menu" role="menu">
+              {onOpenInsights && (
+                <button
+                  type="button"
+                  className="menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onOpenInsights()
+                  }}
+                >
+                  Insights
+                </button>
+              )}
               {storageMode === 'local' && (
                 <p className="menu-note">
                   Local mode — connect Supabase to sync across devices.
