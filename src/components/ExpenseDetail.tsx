@@ -40,7 +40,14 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
     setSpentAt(new Date(expense.spentAt))
     setError(null)
     setSaved(false)
-  }, [expense])
+  }, [
+    expense.id,
+    expense.amount,
+    expense.note,
+    expense.category,
+    expense.spentAt,
+    expense.updatedAt,
+  ])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,14 +60,16 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
       return
     }
 
+    const nextSpentAt = spentAt.toISOString()
     setSaving(true)
     try {
       await onSave(expense.id, {
         amount: Math.round(parsed * 100) / 100,
         note,
         category,
-        spentAt: spentAt.toISOString(),
+        spentAt: nextSpentAt,
       })
+      setSpentAt(new Date(nextSpentAt))
       setSaved(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save expense')
