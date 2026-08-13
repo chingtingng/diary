@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { format, isWithinInterval } from 'date-fns'
+import { format } from 'date-fns'
 import {
-  EXPENSE_PERIODS,
+  EXPENSE_FILTERS,
+  filterExpenses,
   formatPeriodLabel,
-  getPeriodRange,
+  groupExpensesByDay,
   isCurrentPeriod,
   periodEyebrow,
   shiftPeriod,
-  summarizeCategories,
+  type ExpenseFilter,
   type ExpensePeriod,
 } from '../lib/expensePeriods'
 import {
@@ -17,7 +18,6 @@ import {
   type ExpenseCategoryId,
   type ExpenseInput,
 } from '../types/expense'
-import { CategoryPieChart } from './CategoryPieChart'
 
 interface ExpenseTrackerProps {
   expenses: Expense[]
@@ -37,24 +37,13 @@ function todayInputValue(): string {
   return format(new Date(), 'yyyy-MM-dd')
 }
 
-function listDateFormat(period: ExpensePeriod): string {
-  switch (period) {
-    case 'day':
-      return 'h:mm a'
-    case 'year':
-      return 'MMM d'
-    default:
-      return 'EEE, MMM d'
-  }
-}
-
 export function ExpenseTracker({
   expenses,
   loading,
   onAdd,
   onDelete,
 }: ExpenseTrackerProps) {
-  const [period, setPeriod] = useState<ExpensePeriod>('month')
+  const [filter, setFilter] = useState<ExpenseFilter>('all')
   const [anchor, setAnchor] = useState(() => new Date())
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
@@ -62,28 +51,23 @@ export function ExpenseTracker({
   const [spentOn, setSpentOn] = useState(todayInputValue)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
 
-  const range = useMemo(() => getPeriodRange(anchor, period), [anchor, period])
-  const current = isCurrentPeriod(anchor, period)
-
-  const periodExpenses = useMemo(() => {
-    return expenses.filter((expense) =>
-      isWithinInterval(new Date(expense.spentAt), range)
-    )
-  }, [expenses, range])
-
-  const periodTotal = useMemo(
-    () => periodExpenses.reduce((sum, expense) => sum + expense.amount, 0),
-    [periodExpenses]
+  const visibleExpenses = useMemo(
+    () => filterExpenses(expenses, filter, anchor),
+    [expenses, filter, anchor]
   )
 
-  const categorySlices = useMemo(
-    () => summarizeCategories(periodExpenses),
-    [periodExpenses]
+  const total = useMemo(
+    () => visibleExpenses.reduce((sum, expense) => sum + expense.amount, 0),
+    [visibleExpenses]
   )
 
-  const handlePeriodChange = (next: ExpensePeriod) => {
-    setPeriod(next)
+  const groups = useMemo(() => groupExpensesByDay(visibleExpenses), [visibleExpenses])
+  const current = filter === 'all' ? true : isCurrentPeriod(anchor, filter)
+
+  const handleFilterChange = (next: ExpenseFilter) => {
+    setFilter(next)
     setAnchor(new Date())
   }
 
@@ -110,7 +94,8 @@ export function ExpenseTracker({
       setNote('')
       setCategory('food')
       setSpentOn(todayInputValue())
-      setAnchor(spentAt)
+      setShowAddForm(false)
+      if (filter !== 'all') setAnchor(spentAt)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save expense')
     } finally {
@@ -122,49 +107,53 @@ export function ExpenseTracker({
     <div className="expenses-view">
       <div className="expenses-toolbar">
         <div>
-          <p className="eyebrow">{periodEyebrow(period, current)}</p>
-          <h2 className="expenses-title">{formatPeriodLabel(anchor, period)}</h2>
+          <p className="eyebrow">{periodEyebrow(filter, current)}</p>
+          <h2 className="expenses-title">
+            {filter === 'all' ? 'My expenses' : formatPeriodLabel(anchor, filter as ExpensePeriod)}
+          </h2>
           <p className="expenses-subtitle">
-            {periodExpenses.length === 0
+            {visibleExpenses.length === 0
               ? 'No spending logged yet'
-              : `${periodExpenses.length} ${periodExpenses.length === 1 ? 'entry' : 'entries'}`}
+              : `${visibleExpenses.length} ${visibleExpenses.length === 1 ? 'entry' : 'entries'}`}
           </p>
         </div>
-        <div className="calendar-nav">
-          <button
-            type="button"
-            onClick={() => setAnchor((value) => shiftPeriod(value, period, -1))}
-            aria-label={`Previous ${period}`}
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            className="today-btn"
-            onClick={() => setAnchor(new Date())}
-            disabled={current}
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            onClick={() => setAnchor((value) => shiftPeriod(value, period, 1))}
-            aria-label={`Next ${period}`}
-          >
-            →
-          </button>
-        </div>
+        {filter !== 'all' && (
+          <div className="calendar-nav">
+            <button
+              type="button"
+              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
+              aria-label={`Previous ${filter}`}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="today-btn"
+              onClick={() => setAnchor(new Date())}
+              disabled={current}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
+              aria-label={`Next ${filter}`}
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="segmented expense-period-tabs" role="tablist" aria-label="Breakdown period">
-        {EXPENSE_PERIODS.map((item) => (
+      <div className="segmented expense-period-tabs" role="tablist" aria-label="Expense filter">
+        {EXPENSE_FILTERS.map((item) => (
           <button
             key={item.id}
             type="button"
             role="tab"
-            aria-selected={period === item.id}
-            className={period === item.id ? 'active' : ''}
-            onClick={() => handlePeriodChange(item.id)}
+            aria-selected={filter === item.id}
+            className={filter === item.id ? 'active' : ''}
+            onClick={() => handleFilterChange(item.id)}
           >
             {item.label}
           </button>
@@ -172,108 +161,140 @@ export function ExpenseTracker({
       </div>
 
       <div className="expenses-total">
-        <span className="expenses-total-label">Spent</span>
-        <span className="expenses-total-amount">{formatMoney(periodTotal)}</span>
+        <span className="expenses-total-label">
+          {filter === 'all' ? 'Total expenses' : 'Spent'}
+        </span>
+        <span className="expenses-total-amount">{formatMoney(total)}</span>
       </div>
 
-      {categorySlices.length > 0 && (
-        <section className="expense-category-section" aria-labelledby="expense-category-heading">
-          <h3 id="expense-category-heading" className="eyebrow">
-            By category
-          </h3>
-          <CategoryPieChart slices={categorySlices} totalLabel={formatMoney(periodTotal)} />
-        </section>
+      {!showAddForm ? (
+        <button
+          type="button"
+          className="expense-add-toggle"
+          onClick={() => setShowAddForm(true)}
+        >
+          <span aria-hidden>+</span>
+          Add expense
+        </button>
+      ) : (
+        <form className="expense-form" onSubmit={handleSubmit}>
+          <div className="expense-form-heading">
+            <p className="eyebrow">Add expense</p>
+            <button
+              type="button"
+              className="expense-form-cancel"
+              onClick={() => {
+                setShowAddForm(false)
+                setError(null)
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="expense-form-row">
+            <label>
+              Amount
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                autoFocus
+              />
+            </label>
+            <label>
+              Date
+              <input
+                type="date"
+                value={spentOn}
+                onChange={(e) => setSpentOn(e.target.value)}
+                required
+              />
+            </label>
+          </div>
+
+          <label>
+            Category
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as ExpenseCategoryId)}
+            >
+              {EXPENSE_CATEGORIES.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Note
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Coffee, groceries, train…"
+              maxLength={120}
+            />
+          </label>
+
+          {error && <p className="expense-form-error">{error}</p>}
+
+          <button type="submit" className="expense-submit" disabled={submitting}>
+            {submitting ? 'Saving…' : 'Save expense'}
+          </button>
+        </form>
       )}
 
-      <form className="expense-form" onSubmit={handleSubmit}>
-        <p className="eyebrow">Add expense</p>
-        <div className="expense-form-row">
-          <label>
-            Amount
-            <input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Date
-            <input
-              type="date"
-              value={spentOn}
-              onChange={(e) => setSpentOn(e.target.value)}
-              required
-            />
-          </label>
-        </div>
-
-        <label>
-          Category
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as ExpenseCategoryId)}
-          >
-            {EXPENSE_CATEGORIES.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Note
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Coffee, groceries, train…"
-            maxLength={120}
-          />
-        </label>
-
-        {error && <p className="expense-form-error">{error}</p>}
-
-        <button type="submit" className="expense-submit" disabled={submitting}>
-          {submitting ? 'Saving…' : 'Add expense'}
-        </button>
-      </form>
-
-      <section className="expenses-list-section" aria-label="Expenses">
+      <section className="expenses-list-section" aria-label="Expense history">
         {loading ? (
           <p className="empty-list">Loading expenses…</p>
-        ) : periodExpenses.length === 0 ? (
-          <p className="empty-list">Nothing logged for this {period} yet.</p>
+        ) : groups.length === 0 ? (
+          <p className="empty-list">
+            {filter === 'all'
+              ? 'Nothing logged yet. Add an expense to begin.'
+              : `Nothing logged for this ${filter} yet.`}
+          </p>
         ) : (
-          <ul className="expenses-list">
-            {periodExpenses.map((expense) => (
-              <li key={expense.id} className="expense-item">
-                <div className="expense-item-main">
-                  <span className="expense-item-amount">{formatMoney(expense.amount)}</span>
-                  <span className="expense-item-meta">
-                    {format(new Date(expense.spentAt), listDateFormat(period))} ·{' '}
-                    {getCategoryLabel(expense.category)}
-                  </span>
-                  {expense.note.trim() ? (
-                    <span className="expense-item-note">{expense.note}</span>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  className="expense-delete"
-                  onClick={() => onDelete(expense.id)}
-                  aria-label="Delete expense"
-                >
-                  Delete
-                </button>
-              </li>
+          <div className="expenses-history">
+            {groups.map((group) => (
+              <section key={group.key} className="expense-day-group">
+                <h3 className="expense-day-label">{group.label}</h3>
+                <ul className="expenses-list">
+                  {group.items.map((expense) => (
+                    <li key={expense.id} className="expense-item">
+                      <div className="expense-item-main">
+                        <span className="expense-item-note">
+                          {expense.note.trim() || getCategoryLabel(expense.category)}
+                        </span>
+                        <span className="expense-item-meta">
+                          {getCategoryLabel(expense.category)}
+                          {expense.note.trim()
+                            ? ` · ${format(new Date(expense.spentAt), 'h:mm a')}`
+                            : ''}
+                        </span>
+                      </div>
+                      <div className="expense-item-side">
+                        <span className="expense-item-amount">{formatMoney(expense.amount)}</span>
+                        <button
+                          type="button"
+                          className="expense-delete"
+                          onClick={() => onDelete(expense.id)}
+                          aria-label="Delete expense"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </div>

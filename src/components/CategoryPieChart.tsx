@@ -3,6 +3,8 @@ import type { CategorySlice } from '../lib/expensePeriods'
 interface CategoryPieChartProps {
   slices: CategorySlice[]
   totalLabel: string
+  /** When false, only the chart is shown (use a separate breakdown list). */
+  showLegend?: boolean
 }
 
 function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
@@ -56,7 +58,11 @@ function describeSlice(
   ].join(' ')
 }
 
-export function CategoryPieChart({ slices, totalLabel }: CategoryPieChartProps) {
+export function CategoryPieChart({
+  slices,
+  totalLabel,
+  showLegend = true,
+}: CategoryPieChartProps) {
   if (slices.length === 0) return null
 
   const size = 220
@@ -78,7 +84,10 @@ export function CategoryPieChart({ slices, totalLabel }: CategoryPieChartProps) 
   })
 
   return (
-    <div className="expense-pie" aria-label="Spending by category">
+    <div
+      className={`expense-pie ${showLegend ? '' : 'expense-pie-chart-only'}`.trim()}
+      aria-label="Spending by category"
+    >
       <div className="expense-pie-chart">
         <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-hidden>
           {paths.map((slice) => (
@@ -91,21 +100,23 @@ export function CategoryPieChart({ slices, totalLabel }: CategoryPieChartProps) 
         </div>
       </div>
 
-      <ul className="expense-pie-legend">
-        {slices.map((slice) => (
-          <li key={slice.id}>
-            <span className="expense-pie-swatch" style={{ background: slice.color }} aria-hidden />
-            <span className="expense-pie-legend-label">{slice.label}</span>
-            <span className="expense-pie-legend-meta">
-              {slice.percent.toFixed(0)}% ·{' '}
-              {slice.total.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {showLegend && (
+        <ul className="expense-pie-legend">
+          {slices.map((slice) => (
+            <li key={slice.id}>
+              <span className="expense-pie-swatch" style={{ background: slice.color }} aria-hidden />
+              <span className="expense-pie-legend-label">{slice.label}</span>
+              <span className="expense-pie-legend-meta">
+                {slice.percent.toFixed(0)}% ·{' '}
+                {slice.total.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

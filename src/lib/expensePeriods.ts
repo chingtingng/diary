@@ -12,6 +12,9 @@ import {
   isSameMonth,
   isSameWeek,
   isSameYear,
+  isToday,
+  isYesterday,
+  isWithinInterval,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -25,12 +28,22 @@ import type { Expense, ExpenseCategoryId } from '../types/expense'
 import { getCategoryLabel } from '../types/expense'
 
 export type ExpensePeriod = 'day' | 'week' | 'month' | 'year'
+export type ExpenseFilter = ExpensePeriod | 'all'
 
-export const EXPENSE_PERIODS: { id: ExpensePeriod; label: string }[] = [
+export const EXPENSE_FILTERS: { id: ExpenseFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
   { id: 'day', label: 'Day' },
   { id: 'week', label: 'Week' },
   { id: 'month', label: 'Month' },
   { id: 'year', label: 'Year' },
+]
+
+export const INSIGHT_PERIODS: { id: ExpenseFilter; label: string }[] = [
+  { id: 'day', label: 'Day' },
+  { id: 'week', label: 'Week' },
+  { id: 'month', label: 'Month' },
+  { id: 'year', label: 'Year' },
+  { id: 'all', label: 'All' },
 ]
 
 const WEEK_OPTIONS = { weekStartsOn: 1 as const }
@@ -96,9 +109,10 @@ export function formatPeriodLabel(anchor: Date, period: ExpensePeriod): string {
   }
 }
 
-export function periodEyebrow(period: ExpensePeriod, isCurrent: boolean): string {
+export function periodEyebrow(filter: ExpenseFilter, isCurrent: boolean): string {
+  if (filter === 'all') return 'Lifetime'
   if (!isCurrent) {
-    switch (period) {
+    switch (filter) {
       case 'day':
         return 'Day'
       case 'week':
@@ -109,7 +123,7 @@ export function periodEyebrow(period: ExpensePeriod, isCurrent: boolean): string
         return 'Year'
     }
   }
-  switch (period) {
+  switch (filter) {
     case 'day':
       return 'Today'
     case 'week':
@@ -119,6 +133,53 @@ export function periodEyebrow(period: ExpensePeriod, isCurrent: boolean): string
     case 'year':
       return 'This year'
   }
+}
+
+export function filterExpenses(
+  expenses: Expense[],
+  filter: ExpenseFilter,
+  anchor: Date
+): Expense[] {
+  if (filter === 'all') return expenses
+  const range = getPeriodRange(anchor, filter)
+  return expenses.filter((expense) =>
+    isWithinInterval(new Date(expense.spentAt), range)
+  )
+}
+
+export type ExpenseDayGroup = {
+  key: string
+  label: string
+  items: Expense[]
+}
+
+export function groupExpensesByDay(expenses: Expense[]): ExpenseDayGroup[] {
+  const groups = new Map<string, Expense[]>()
+
+  for (const expense of expenses) {
+    const key = format(startOfDay(new Date(expense.spentAt)), 'yyyy-MM-dd')
+    const bucket = groups.get(key)
+    if (bucket) bucket.push(expense)
+    else groups.set(key, [expense])
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .map(([key, items]) => {
+      const date = new Date(`${key}T12:00:00`)
+      let label: string
+      if (isToday(date)) label = 'Today'
+      else if (isYesterday(date)) label = 'Yesterday'
+      else label = format(date, 'd MMM yyyy')
+
+      return {
+        key,
+        label,
+        items: items.sort(
+          (a, b) => new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime()
+        ),
+      }
+    })
 }
 
 export type CategorySlice = {
