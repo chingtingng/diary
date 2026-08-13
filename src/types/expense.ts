@@ -1,6 +1,7 @@
 export const EXPENSE_CATEGORIES = [
   { id: 'food', label: 'Food' },
   { id: 'transport', label: 'Transport' },
+  { id: 'travel', label: 'Travel' },
   { id: 'home', label: 'Home' },
   { id: 'shopping', label: 'Shopping' },
   { id: 'health', label: 'Health' },

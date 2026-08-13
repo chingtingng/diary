@@ -170,7 +170,7 @@ export function ExpenseTracker({
             </button>
             <button
               type="button"
-              className="today-btn"
+              className={`today-btn${current ? ' current' : ''}`}
               onClick={() => setAnchor(new Date())}
               disabled={current}
             >
