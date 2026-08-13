@@ -30,12 +30,17 @@ import { getCategoryLabel } from '../types/expense'
 export type ExpensePeriod = 'day' | 'week' | 'month' | 'year'
 export type ExpenseFilter = ExpensePeriod | 'all'
 
-export const EXPENSE_FILTERS: { id: ExpenseFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
+/** Primary overview tabs matching the expense mockup (no All). */
+export const EXPENSE_PERIODS: { id: ExpensePeriod; label: string }[] = [
   { id: 'day', label: 'Day' },
   { id: 'week', label: 'Week' },
   { id: 'month', label: 'Month' },
   { id: 'year', label: 'Year' },
+]
+
+export const EXPENSE_FILTERS: { id: ExpenseFilter; label: string }[] = [
+  ...EXPENSE_PERIODS,
+  { id: 'all', label: 'All' },
 ]
 
 export const INSIGHT_PERIODS: { id: ExpenseFilter; label: string }[] = [
@@ -46,7 +51,22 @@ export const INSIGHT_PERIODS: { id: ExpenseFilter; label: string }[] = [
   { id: 'all', label: 'All' },
 ]
 
-const WEEK_OPTIONS = { weekStartsOn: 1 as const }
+/** Mockup week chart uses Sunday–Saturday. */
+const WEEK_OPTIONS = { weekStartsOn: 0 as const }
+
+export type SpendingBar = {
+  key: string
+  label: string
+  total: number
+  active: boolean
+}
+
+export type MonthSpendRow = {
+  key: string
+  label: string
+  total: number
+  date: Date
+}
 
 export function getPeriodRange(anchor: Date, period: ExpensePeriod): { start: Date; end: Date } {
   switch (period) {
@@ -94,13 +114,11 @@ export function formatPeriodLabel(anchor: Date, period: ExpensePeriod): string {
   const { start, end } = getPeriodRange(anchor, period)
   switch (period) {
     case 'day':
-      return format(start, 'EEEE, MMMM d')
+      return format(start, 'EEEE, MMM d')
     case 'week': {
       const sameMonth = isSameMonth(start, end)
-      const sameYear = isSameYear(start, end)
-      if (sameMonth) return `${format(start, 'MMM d')} – ${format(end, 'd, yyyy')}`
-      if (sameYear) return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`
-      return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`
+      if (sameMonth) return `${format(start, 'MMM d')} – ${format(end, 'd')}`
+      return `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`
     }
     case 'month':
       return format(start, 'MMMM yyyy')
@@ -127,11 +145,24 @@ export function periodEyebrow(filter: ExpenseFilter, isCurrent: boolean): string
     case 'day':
       return 'Today'
     case 'week':
-      return 'This week'
+      return 'This Week'
     case 'month':
-      return 'This month'
+      return 'This Month'
     case 'year':
-      return 'This year'
+      return 'This Year'
+  }
+}
+
+export function currentPeriodBadge(period: ExpensePeriod): string {
+  switch (period) {
+    case 'day':
+      return 'Today'
+    case 'week':
+      return 'This Week'
+    case 'month':
+      return 'This Month'
+    case 'year':
+      return 'This Year'
   }
 }
 
@@ -153,6 +184,11 @@ export type ExpenseDayGroup = {
   items: Expense[]
 }
 
+export type ExpenseDayGroupWithTotal = ExpenseDayGroup & {
+  total: number
+  date: Date
+}
+
 export function groupExpensesByDay(expenses: Expense[]): ExpenseDayGroup[] {
   const groups = new Map<string, Expense[]>()
 
@@ -170,7 +206,7 @@ export function groupExpensesByDay(expenses: Expense[]): ExpenseDayGroup[] {
       let label: string
       if (isToday(date)) label = 'Today'
       else if (isYesterday(date)) label = 'Yesterday'
-      else label = format(date, 'd MMM yyyy')
+      else label = format(date, 'EEE, MMM d')
 
       return {
         key,
@@ -182,6 +218,106 @@ export function groupExpensesByDay(expenses: Expense[]): ExpenseDayGroup[] {
     })
 }
 
+export function groupExpensesByDayWithTotals(expenses: Expense[]): ExpenseDayGroupWithTotal[] {
+  return groupExpensesByDay(expenses).map((group) => {
+    const date = new Date(`${group.key}T12:00:00`)
+    return {
+      ...group,
+      date,
+      total: group.items.reduce((sum, item) => sum + item.amount, 0),
+      label: format(date, 'EEE, MMM d'),
+    }
+  })
+}
+
+export function buildSpendingBars(
+  expenses: Expense[],
+  anchor: Date,
+  period: ExpensePeriod
+): SpendingBar[] {
+  const { start, end } = getPeriodRange(anchor, period)
+  const now = new Date()
+
+  if (period === 'week') {
+    const weekBars = Array.from({ length: 7 }, (_, index) => {
+      const day = addDays(start, index)
+      const total = expenses
+        .filter((expense) => isSameDay(new Date(expense.spentAt), day))
+        .reduce((sum, expense) => sum + expense.amount, 0)
+      return {
+        key: format(day, 'yyyy-MM-dd'),
+        label: format(day, 'EEE').slice(0, 3),
+        total,
+        day,
+      }
+    })
+    const highlightDay = isCurrentPeriod(anchor, 'week', now)
+      ? now
+      : weekBars.reduce((best, bar) => (bar.total > best.total ? bar : best), weekBars[0]).day
+    return weekBars.map(({ day, ...bar }) => ({
+      ...bar,
+      active: isSameDay(day, highlightDay),
+    }))
+  }
+
+  if (period === 'month') {
+    const days = end.getDate()
+    return Array.from({ length: days }, (_, index) => {
+      const day = addDays(start, index)
+      const total = expenses
+        .filter((expense) => isSameDay(new Date(expense.spentAt), day))
+        .reduce((sum, expense) => sum + expense.amount, 0)
+      return {
+        key: format(day, 'yyyy-MM-dd'),
+        label: String(index + 1),
+        total,
+        active: isSameDay(day, now),
+      }
+    })
+  }
+
+  if (period === 'year') {
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = addMonths(startOfYear(anchor), index)
+      const total = expenses
+        .filter((expense) => isSameMonth(new Date(expense.spentAt), month))
+        .reduce((sum, expense) => sum + expense.amount, 0)
+      return {
+        key: format(month, 'yyyy-MM'),
+        label: format(month, 'MMM').slice(0, 3),
+        total,
+        active: isSameMonth(month, now),
+      }
+    })
+  }
+
+  return []
+}
+
+export function groupExpensesByMonth(expenses: Expense[], anchor: Date): MonthSpendRow[] {
+  const now = new Date()
+  const rows: MonthSpendRow[] = []
+
+  for (let index = 11; index >= 0; index -= 1) {
+    const month = addMonths(startOfYear(anchor), index)
+    const total = expenses
+      .filter((expense) => isSameMonth(new Date(expense.spentAt), month))
+      .reduce((sum, expense) => sum + expense.amount, 0)
+
+    // Hide empty future months; keep past/current months for a full year list.
+    if (total <= 0 && month > now) continue
+
+    rows.push({
+      key: format(month, 'yyyy-MM'),
+      label: format(month, 'MMMM'),
+      total,
+      date: month,
+    })
+  }
+
+  return rows
+}
+
 export type CategorySlice = {
   id: ExpenseCategoryId
   label: string
@@ -190,14 +326,14 @@ export type CategorySlice = {
   color: string
 }
 
-/** Soft palette aligned with the mist daybook theme (not purple-forward). */
+/** Slate-forward palette aligned with the expense mockup. */
 export const CATEGORY_COLORS: Record<ExpenseCategoryId, string> = {
-  food: '#2f6f8f',
-  transport: '#3f8f6e',
-  travel: '#4a8aa3',
-  home: '#b07a3a',
-  shopping: '#8a6a45',
-  health: '#4f8a86',
+  food: '#2c5282',
+  transport: '#2f6f8f',
+  travel: '#3d6e8c',
+  home: '#4a6fa5',
+  shopping: '#5b6b8c',
+  health: '#3f8f6e',
   fun: '#b2654d',
   other: '#6d7684',
 }

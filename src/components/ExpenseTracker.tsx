@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
-  EXPENSE_FILTERS,
+  EXPENSE_PERIODS,
+  buildSpendingBars,
+  currentPeriodBadge,
   filterExpenses,
   formatPeriodLabel,
   groupExpensesByDay,
+  groupExpensesByDayWithTotals,
+  groupExpensesByMonth,
   isCurrentPeriod,
-  periodEyebrow,
   shiftPeriod,
-  type ExpenseFilter,
+  summarizeCategories,
   type ExpensePeriod,
 } from '../lib/expensePeriods'
 import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
@@ -20,14 +23,16 @@ import {
   type ExpenseInput,
   type ExpensePatch,
 } from '../types/expense'
+import { CategoryIcon } from './CategoryIcon'
 import { DateTimePicker } from './DateTimePicker'
 import { ExpenseDetail } from './ExpenseDetail'
 import { MenuSelect } from './MenuSelect'
-import { PeriodSelect } from './PeriodSelect'
+import { SpendingBarChart } from './SpendingBarChart'
 
 interface ExpenseTrackerProps {
   expenses: Expense[]
   loading: boolean
+  searchQuery?: string
   onAdd: (input: ExpenseInput) => Promise<Expense>
   onSave: (id: string, patch: ExpensePatch) => Promise<void>
   onDelete: (id: string) => Promise<void>
@@ -40,14 +45,20 @@ function formatMoney(amount: number): string {
   })
 }
 
+function asPeriod(value: string): ExpensePeriod {
+  if (value === 'week' || value === 'month' || value === 'year') return value
+  return 'day'
+}
+
 export function ExpenseTracker({
   expenses,
   loading,
+  searchQuery = '',
   onAdd,
   onSave,
   onDelete,
 }: ExpenseTrackerProps) {
-  const [filter, setFilter] = useState<ExpenseFilter>(readExpenseFilter)
+  const [period, setPeriod] = useState<ExpensePeriod>(() => asPeriod(readExpenseFilter()))
   const [anchor, setAnchor] = useState(() => new Date())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
@@ -57,29 +68,52 @@ export function ExpenseTracker({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set())
 
   const selectedExpense = useMemo(
     () => expenses.find((expense) => expense.id === selectedId) ?? null,
     [expenses, selectedId]
   )
 
-  const visibleExpenses = useMemo(
-    () => filterExpenses(expenses, filter, anchor),
-    [expenses, filter, anchor]
-  )
+  const visibleExpenses = useMemo(() => {
+    const scoped = filterExpenses(expenses, period, anchor)
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return scoped
+    return scoped.filter((expense) => {
+      const haystack = `${expense.note} ${getCategoryLabel(expense.category)}`.toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [expenses, period, anchor, searchQuery])
 
   const total = useMemo(
     () => visibleExpenses.reduce((sum, expense) => sum + expense.amount, 0),
     [visibleExpenses]
   )
 
-  const groups = useMemo(() => groupExpensesByDay(visibleExpenses), [visibleExpenses])
-  const current = filter === 'all' ? true : isCurrentPeriod(anchor, filter)
+  const dayGroups = useMemo(() => groupExpensesByDay(visibleExpenses), [visibleExpenses])
+  const weekGroups = useMemo(
+    () => groupExpensesByDayWithTotals(visibleExpenses),
+    [visibleExpenses]
+  )
+  const categorySlices = useMemo(
+    () => summarizeCategories(visibleExpenses),
+    [visibleExpenses]
+  )
+  const monthRows = useMemo(
+    () => groupExpensesByMonth(visibleExpenses, anchor),
+    [visibleExpenses, anchor]
+  )
+  const bars = useMemo(
+    () => (period === 'day' ? [] : buildSpendingBars(visibleExpenses, anchor, period)),
+    [visibleExpenses, anchor, period]
+  )
+  const current = isCurrentPeriod(anchor, period)
 
-  const handleFilterChange = (next: ExpenseFilter) => {
-    setFilter(next)
+  const handlePeriodChange = (next: ExpensePeriod) => {
+    setPeriod(next)
     writeExpenseFilter(next)
     setAnchor(new Date())
+    setExpandedDays(new Set())
   }
 
   const resetAddForm = () => {
@@ -110,12 +144,21 @@ export function ExpenseTracker({
         spentAt: spentAt.toISOString(),
       })
       resetAddForm()
-      if (filter !== 'all') setAnchor(spentAt)
+      setAnchor(spentAt)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save expense')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const toggleDay = (key: string) => {
+    setExpandedDays((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   if (selectedId) {
@@ -141,65 +184,67 @@ export function ExpenseTracker({
   }
 
   return (
-    <div className="expenses-view">
-      <div className="expenses-toolbar">
-        <div className="expenses-toolbar-copy">
-          <p className="eyebrow">{periodEyebrow(filter, current)}</p>
-          <h2 className="expenses-title">
-            {filter === 'all' ? 'My expenses' : formatPeriodLabel(anchor, filter as ExpensePeriod)}
-          </h2>
-          <p className="expenses-subtitle">
-            {visibleExpenses.length === 0
-              ? 'No spending logged yet'
-              : `${visibleExpenses.length} ${visibleExpenses.length === 1 ? 'entry' : 'entries'}`}
-          </p>
-        </div>
-        <div className="expenses-toolbar-controls">
-          <PeriodSelect
-            value={filter}
-            options={EXPENSE_FILTERS}
-            onChange={handleFilterChange}
-          />
-        </div>
+    <div className="expenses-view expenses-overview">
+      <div className="expense-period-tabs" role="tablist" aria-label="Period">
+        {EXPENSE_PERIODS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="tab"
+            aria-selected={period === option.id}
+            className={period === option.id ? 'active' : ''}
+            data-haptic="select"
+            onClick={() => handlePeriodChange(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
-      <div className="expenses-summary-row">
-        <div className="expenses-total">
-          <span className="expenses-total-label">
-            {filter === 'all' ? 'Total expenses' : 'Spent'}
-          </span>
-          <span className="expenses-total-amount">{formatMoney(total)}</span>
+      <div className="expense-period-header">
+        <div className="expense-period-heading">
+          <button
+            type="button"
+            className="expense-period-shift"
+            data-haptic="select"
+            onClick={() => setAnchor((value) => shiftPeriod(value, period, -1))}
+            aria-label={`Previous ${period}`}
+          >
+            ‹
+          </button>
+          <h2 className="expenses-title">{formatPeriodLabel(anchor, period)}</h2>
+          <button
+            type="button"
+            className="expense-period-shift"
+            data-haptic="select"
+            onClick={() => setAnchor((value) => shiftPeriod(value, period, 1))}
+            aria-label={`Next ${period}`}
+          >
+            ›
+          </button>
         </div>
-        {filter !== 'all' && (
-          <div className="calendar-nav expenses-period-nav">
-            <button
-              type="button"
-              data-haptic="select"
-              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
-              aria-label={`Previous ${filter}`}
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              className={`today-btn${current ? ' current' : ''}`}
-              data-haptic="select"
-              onClick={() => setAnchor(new Date())}
-              disabled={current}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              data-haptic="select"
-              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
-              aria-label={`Next ${filter}`}
-            >
-              →
-            </button>
-          </div>
-        )}
+        <button
+          type="button"
+          className={`expense-period-badge${current ? ' current' : ''}`}
+          data-haptic="select"
+          onClick={() => setAnchor(new Date())}
+          disabled={current}
+        >
+          {current ? currentPeriodBadge(period) : 'Jump to now'}
+        </button>
       </div>
+
+      <div className="expenses-total-block">
+        <span className="expenses-total-amount">${formatMoney(total)}</span>
+        <span className="expenses-total-label">Total Spent</span>
+      </div>
+
+      {period !== 'day' && bars.length > 0 && (
+        <SpendingBarChart
+          bars={bars}
+          density={period === 'month' ? 'month' : period === 'year' ? 'year' : 'week'}
+        />
+      )}
 
       {!showAddForm ? (
         <button
@@ -211,8 +256,7 @@ export function ExpenseTracker({
             setShowAddForm(true)
           }}
         >
-          <span aria-hidden>+</span>
-          Add expense
+          + Add expense
         </button>
       ) : (
         <form className="expense-form" onSubmit={handleSubmit}>
@@ -270,43 +314,123 @@ export function ExpenseTracker({
       <section className="expenses-list-section" aria-label="Expense history">
         {loading ? (
           <p className="empty-list">Loading expenses…</p>
-        ) : groups.length === 0 ? (
-          <p className="empty-list">
-            {filter === 'all'
-              ? 'Nothing logged yet. Add an expense to begin.'
-              : `Nothing logged for this ${filter} yet.`}
-          </p>
-        ) : (
-          <div className="expenses-history">
-            {groups.map((group) => (
-              <section key={group.key} className="expense-day-group">
-                <h3 className="expense-day-label">{group.label}</h3>
-                <ul className="expenses-list">
-                  {group.items.map((expense) => (
-                    <li key={expense.id}>
-                      <button
-                        type="button"
-                        className="expense-item expense-item-button"
-                        data-haptic="select"
-                        onClick={() => setSelectedId(expense.id)}
-                      >
-                        <div className="expense-item-main">
-                          <span className="expense-item-note">
-                            {expense.note.trim() || getCategoryLabel(expense.category)}
-                          </span>
-                          <span className="expense-item-meta">
-                            {getCategoryLabel(expense.category)} ·{' '}
-                            {format(new Date(expense.spentAt), 'h:mm a')}
-                          </span>
-                        </div>
-                        <span className="expense-item-amount">{formatMoney(expense.amount)}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+        ) : visibleExpenses.length === 0 ? (
+          <p className="empty-list">Nothing logged for this {period} yet.</p>
+        ) : period === 'day' ? (
+          <ul className="expenses-list expense-txn-list">
+            {dayGroups.flatMap((group) =>
+              group.items.map((expense) => (
+                <li key={expense.id}>
+                  <button
+                    type="button"
+                    className="expense-item expense-item-button expense-txn-row"
+                    data-haptic="select"
+                    onClick={() => setSelectedId(expense.id)}
+                  >
+                    <CategoryIcon category={expense.category} />
+                    <div className="expense-item-main">
+                      <span className="expense-item-note">
+                        {expense.note.trim() || getCategoryLabel(expense.category)}
+                      </span>
+                      <span className="expense-item-meta">
+                        {getCategoryLabel(expense.category)} •{' '}
+                        {format(new Date(expense.spentAt), 'h:mm a')}
+                      </span>
+                    </div>
+                    <span className="expense-item-amount">${formatMoney(expense.amount)}</span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        ) : period === 'week' ? (
+          <div className="expenses-history expense-week-groups">
+            {weekGroups.map((group) => {
+              const open = expandedDays.has(group.key)
+              return (
+                <section key={group.key} className={`expense-week-group${open ? ' open' : ''}`}>
+                  <button
+                    type="button"
+                    className="expense-week-group-toggle"
+                    data-haptic="select"
+                    aria-expanded={open}
+                    onClick={() => toggleDay(group.key)}
+                  >
+                    <span className="expense-week-group-label">{group.label}</span>
+                    <span className="expense-week-group-total">${formatMoney(group.total)}</span>
+                    <span className="expense-week-chevron" aria-hidden>
+                      {open ? '▾' : '›'}
+                    </span>
+                  </button>
+                  {open && (
+                    <ul className="expenses-list expense-txn-list">
+                      {group.items.map((expense) => (
+                        <li key={expense.id}>
+                          <button
+                            type="button"
+                            className="expense-item expense-item-button expense-txn-row"
+                            data-haptic="select"
+                            onClick={() => setSelectedId(expense.id)}
+                          >
+                            <CategoryIcon category={expense.category} size={36} />
+                            <div className="expense-item-main">
+                              <span className="expense-item-note">
+                                {expense.note.trim() || getCategoryLabel(expense.category)}
+                              </span>
+                              <span className="expense-item-meta">
+                                {getCategoryLabel(expense.category)} •{' '}
+                                {format(new Date(expense.spentAt), 'h:mm a')}
+                              </span>
+                            </div>
+                            <span className="expense-item-amount">
+                              ${formatMoney(expense.amount)}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )
+            })}
           </div>
+        ) : period === 'month' ? (
+          <ul className="expense-category-list">
+            {categorySlices.map((slice) => (
+              <li key={slice.id} className="expense-category-row">
+                <CategoryIcon category={slice.id} />
+                <div className="expense-category-copy">
+                  <div className="expense-category-top">
+                    <span className="expense-category-name">{slice.label}</span>
+                    <span className="expense-category-amount">${formatMoney(slice.total)}</span>
+                  </div>
+                  <div className="expense-category-bar" aria-hidden>
+                    <span style={{ width: `${Math.max(slice.percent, 4)}%`, background: slice.color }} />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul className="expense-month-list">
+            {monthRows.map((row) => (
+              <li key={row.key}>
+                <button
+                  type="button"
+                  className="expense-month-row"
+                  data-haptic="select"
+                  onClick={() => {
+                    setPeriod('month')
+                    writeExpenseFilter('month')
+                    setAnchor(row.date)
+                  }}
+                >
+                  <span className="expense-month-name">{row.label}</span>
+                  <span className="expense-month-amount">${formatMoney(row.total)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>
