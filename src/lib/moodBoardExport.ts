@@ -77,12 +77,14 @@ export async function exportYearMoodBoardPng(entries: Entry[], year: number): Pr
   roundRect(ctx, panelX, panelY, panelW, panelH, 24)
   ctx.fill()
 
+  await document.fonts.ready
+
   ctx.fillStyle = '#1c2430'
-  ctx.font = '600 28px Fraunces, Georgia, serif'
+  ctx.font = '600 28px "Glacial Indifference", Poppins, Montserrat, sans-serif'
   ctx.fillText(`${year} mood board`, pad, pad + 28)
 
   ctx.fillStyle = '#5c6675'
-  ctx.font = '500 13px Manrope, system-ui, sans-serif'
+  ctx.font = '500 13px Poppins, "Glacial Indifference", Montserrat, sans-serif'
   const daysWithMood = [...colors.keys()].filter((k) => k.startsWith(`${year}-`)).length
   ctx.fillText(`${daysWithMood} days with a mood · Daybook`, pad, pad + 52)
 
@@ -104,7 +106,7 @@ export async function exportYearMoodBoardPng(entries: Entry[], year: number): Pr
 
   // day number header
   ctx.fillStyle = '#5c6675'
-  ctx.font = '600 10px Manrope, system-ui, sans-serif'
+  ctx.font = '600 10px Poppins, "Glacial Indifference", Montserrat, sans-serif'
   ctx.textAlign = 'center'
   for (let d = 1; d <= 31; d++) {
     if (d === 1 || d % 5 === 0 || d === 31) {
@@ -117,7 +119,7 @@ export async function exportYearMoodBoardPng(entries: Entry[], year: number): Pr
   for (let m = 0; m < 12; m++) {
     const y = gridTop + m * (cell + gap)
     ctx.fillStyle = '#5c6675'
-    ctx.font = '600 12px Manrope, system-ui, sans-serif'
+    ctx.font = '600 12px Poppins, "Glacial Indifference", Montserrat, sans-serif'
     ctx.fillText(monthNames[m], pad, y + cell * 0.72)
 
     const daysInMonth = new Date(year, m + 1, 0).getDate()
@@ -137,7 +139,7 @@ export async function exportYearMoodBoardPng(entries: Entry[], year: number): Pr
 
   // legend
   const legendY = gridTop + rows * (cell + gap) + 20
-  ctx.font = '600 11px Manrope, system-ui, sans-serif'
+  ctx.font = '600 11px Poppins, "Glacial Indifference", Montserrat, sans-serif'
   let lx = pad
   for (const mood of MOODS) {
     roundRect(ctx, lx, legendY, 12, 12, 3)

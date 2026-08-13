@@ -14,6 +14,8 @@ export default defineConfig({
         'apple-touch-icon.svg',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'fonts/GlacialIndifference-Regular.woff2',
+        'fonts/GlacialIndifference-Bold.woff2',
       ],
       manifest: {
         name: 'Daybook',
@@ -44,8 +46,19 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
