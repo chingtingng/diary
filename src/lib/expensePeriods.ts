@@ -347,7 +347,6 @@ export const CATEGORY_COLORS: Record<ExpenseCategoryId, string> = {
   hobbies: '#7a6b9a',
   shopping: '#6d8b9c',
   health: '#3f8f6e',
-  fun: '#b2654d',
   other: '#6d7684',
 }
 
