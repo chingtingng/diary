@@ -5,7 +5,6 @@ export const EXPENSE_CATEGORIES = [
   { id: 'hobbies', label: 'Hobbies' },
   { id: 'shopping', label: 'Shopping' },
   { id: 'health', label: 'Health' },
-  { id: 'fun', label: 'Fun' },
   { id: 'other', label: 'Other' },
 ] as const
 
@@ -14,7 +13,7 @@ export type ExpenseCategoryId = (typeof EXPENSE_CATEGORIES)[number]['id']
 const CATEGORY_IDS = new Set<string>(EXPENSE_CATEGORIES.map((category) => category.id))
 
 export function normalizeCategory(id: string): ExpenseCategoryId {
-  if (id === 'home') return 'other'
+  if (id === 'home' || id === 'fun') return 'other'
   if (CATEGORY_IDS.has(id)) return id as ExpenseCategoryId
   return 'other'
 }

@@ -73,17 +73,6 @@ function Glyph({ category }: { category: ExpenseCategoryId }) {
           strokeLinecap="round"
         />
       )
-    case 'fun':
-      return (
-        <path
-          d="M7 10c0-1.5 1.2-3 3-3 .8 0 1.5.3 2 1 .5-.7 1.2-1 2-1 1.8 0 3 1.5 3 3 0 3.5-5 6.5-5 6.5S7 13.5 7 10Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )
     default:
       return (
         <path
