@@ -15,6 +15,7 @@ import {
   swipeHint,
   type ExpensePeriod,
 } from '../lib/expensePeriods'
+import { haptic } from '../lib/haptics'
 import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
 import {
   EXPENSE_CATEGORIES,
@@ -181,6 +182,7 @@ export function ExpenseTracker({
     gestureStartY.current = null
     if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.25) return
     if (showAddForm || pickerOpen) return
+    haptic('select')
     setExpandedWeekDays(new Set())
     setAnchor((value) => shiftPeriod(value, period, dx < 0 ? 1 : -1))
   }
@@ -407,7 +409,16 @@ export function ExpenseTracker({
                       onClick={() => toggleWeekDay(group.key)}
                     >
                       <span className="expense-week-row-chevron" aria-hidden>
-                        ›
+                        <svg viewBox="0 0 16 16" width="16" height="16" focusable="false">
+                          <path
+                            d="M5.5 2.5 L11 8 L5.5 13.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.25"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                       </span>
                       <div className="expense-week-row-copy">
                         <span className="expense-week-row-label">{group.label}</span>

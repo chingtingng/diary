@@ -133,6 +133,15 @@ button {
   gap: 10px;
 }
 
+/* iOS haptic switch overlays injected by @haptics/core */
+[data-haptic] {
+  isolation: isolate;
+}
+
+[data-haptic-overlay] {
+  z-index: 1;
+}
+
 .header-mark,
 .auth-mark {
   display: grid;
@@ -2366,7 +2375,7 @@ button.year-board-cell:hover {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--line);
   text-align: left;
 }
@@ -2401,17 +2410,24 @@ button.year-board-cell:hover {
 }
 
 .expense-week-row-chevron {
+  display: inline-grid;
+  place-items: center;
   flex-shrink: 0;
-  width: 1.1rem;
-  text-align: center;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-  transition: transform 0.18s ease;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-soft) 70%, white);
+  color: var(--accent);
+  transition: transform 0.18s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.expense-week-row-chevron svg {
+  display: block;
 }
 
 .expense-week-day.expanded .expense-week-row-chevron {
   transform: rotate(90deg);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 

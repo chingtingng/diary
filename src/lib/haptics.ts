@@ -1,64 +1,34 @@
+import { PRESETS, attachHaptics, schedulePattern, type HapticPattern } from '@haptics/core'
+
 export type HapticKind = 'light' | 'select' | 'success' | 'error'
 
-function vibratePattern(kind: HapticKind): number | number[] {
-  switch (kind) {
-    case 'select':
-    case 'light':
-      return 12
-    case 'success':
-      return [12, 40, 18]
-    case 'error':
-      return [16, 40, 16, 40, 24]
-  }
+const KIND_TO_PRESET: Record<HapticKind, keyof typeof PRESETS> = {
+  light: 'impact-light',
+  select: 'selection',
+  success: 'success',
+  error: 'error',
 }
 
-function tapIosSwitch() {
-  const label = document.createElement('label')
-  const input = document.createElement('input')
-  input.type = 'checkbox'
-  input.setAttribute('switch', '')
-  input.tabIndex = -1
-  label.setAttribute('aria-hidden', 'true')
-  label.style.cssText =
-    'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;'
-  label.appendChild(input)
-  document.body.appendChild(label)
-  label.click()
-  label.remove()
+function patternFor(name: string): HapticPattern | undefined {
+  if (name in PRESETS) return PRESETS[name as keyof typeof PRESETS]
+  if (name in KIND_TO_PRESET) return PRESETS[KIND_TO_PRESET[name as HapticKind]]
+  return PRESETS.selection
 }
 
-function iosBurst(kind: HapticKind) {
-  const times = kind === 'error' ? 3 : kind === 'success' ? 2 : 1
-  for (let i = 0; i < times; i++) {
-    window.setTimeout(tapIosSwitch, i * 55)
-  }
-}
-
+/** Imperative haptic for gestures (swipe, etc.). Best-effort on iOS 26.5+. */
 export function haptic(kind: HapticKind = 'light') {
   if (typeof window === 'undefined') return
-
-  try {
-    if (typeof navigator.vibrate === 'function') {
-      const pulsed = navigator.vibrate(vibratePattern(kind))
-      if (pulsed) return
-    }
-  } catch {
-    /* ignore */
-  }
-
-  iosBurst(kind)
+  const pattern = patternFor(kind)
+  if (!pattern) return
+  schedulePattern(pattern)
 }
 
+/**
+ * Wire native haptics for every `[data-haptic]` control.
+ * On iPhone Safari, overlays a real checkbox-switch so the user's tap
+ * produces a Taptic tick (works through iOS 26.5+).
+ */
 export function installHapticClicks() {
-  document.addEventListener(
-    'pointerdown',
-    (event) => {
-      if (event.pointerType !== 'touch') return
-      const target = (event.target as HTMLElement | null)?.closest?.('[data-haptic]')
-      if (!(target instanceof HTMLElement)) return
-      const kind = (target.getAttribute('data-haptic') || 'light') as HapticKind
-      haptic(kind)
-    },
-    { capture: true, passive: true }
-  )
+  if (typeof document === 'undefined') return
+  attachHaptics({ getPattern: patternFor })
 }

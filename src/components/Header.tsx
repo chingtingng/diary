@@ -37,10 +37,7 @@ export function Header({
     <header className="app-header">
       <div className="header-brand">
         <OpenBookMark />
-        <div>
-          <p className="brand-kicker">Private daybook</p>
-          <h1>Daybook</h1>
-        </div>
+        <h1>Daybook</h1>
       </div>
 
       <nav className="view-tabs" aria-label="Views">
