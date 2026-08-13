@@ -931,40 +931,114 @@ button:focus {
   color: var(--ink-soft);
 }
 
-.native-date-value {
-  display: block;
-  padding: 8px 36px 8px 12px;
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.date-field-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgb(255 255 255 / 80%);
   color: var(--ink);
   font-size: var(--font-size-input);
   font-weight: 600;
+  text-align: left;
+  touch-action: pan-y;
 }
 
-.native-date:focus-within .native-date-value {
+.date-field-trigger.open,
+.date-field-trigger:focus-visible {
+  outline: none;
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-.native-date input[type='date'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  opacity: 0;
-  border: none;
-  background: transparent;
-  color: transparent;
-  font-size: 1rem;
-  cursor: pointer;
+.date-field-icon {
+  flex-shrink: 0;
+  color: var(--ink-soft);
 }
 
-.expense-form .native-date input[type='date']:focus {
-  box-shadow: none;
-  border: none;
+.date-field-calendar {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--accent-soft) 55%, white);
+}
+
+.date-field-cal-nav {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.date-field-cal-nav p {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.date-field-cal-nav button {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--line);
+  font-weight: 600;
+  color: var(--expense-accent);
+}
+
+.date-field-weekdays,
+.date-field-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.date-field-weekdays {
+  margin-bottom: 4px;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.date-field-day {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: white;
+  color: var(--ink);
+}
+
+.date-field-day.outside {
+  opacity: 0.35;
+}
+
+.date-field-day.today:not(.selected) {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.date-field-day.selected {
+  background: var(--expense-accent);
+  color: white;
 }
 
 .expense-form input:focus,
