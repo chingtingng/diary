@@ -2357,26 +2357,30 @@ button.year-board-cell:hover {
 .expense-week-row:focus,
 .expense-week-row:focus-visible,
 .expense-month-row:focus,
-.expense-month-row:focus-visible {
+.expense-month-row:focus-visible,
+.expense-category-row:focus,
+.expense-category-row:focus-visible {
   outline: none;
 }
 
 .expense-week-list > li:first-child .expense-week-row,
 .expense-month-list > li:first-child .expense-month-row,
-.expense-category-list > .expense-category-row:first-child,
 .expense-txn-list > li:first-child .expense-item {
   border-top: none;
 }
 
-.expense-week-day {
+.expense-week-day,
+.expense-category-group {
   border-top: 1px solid var(--line);
 }
 
-.expense-week-list > li:first-child.expense-week-day {
+.expense-week-list > li:first-child.expense-week-day,
+.expense-category-list > li:first-child.expense-category-group {
   border-top: none;
 }
 
-.expense-week-day > .expense-week-row {
+.expense-week-day > .expense-week-row,
+.expense-category-group > .expense-category-row {
   border-top: none;
 }
 
@@ -2406,7 +2410,8 @@ button.year-board-cell:hover {
   display: block;
 }
 
-.expense-week-day.expanded .expense-week-row-chevron {
+.expense-week-day.expanded .expense-week-row-chevron,
+.expense-category-group.expanded .expense-week-row-chevron {
   transform: rotate(90deg);
   background: var(--accent-soft);
   color: var(--accent);
@@ -2418,7 +2423,8 @@ button.year-board-cell:hover {
   transition: grid-template-rows 0.2s ease;
 }
 
-.expense-week-day.expanded .expense-week-day-panel {
+.expense-week-day.expanded .expense-week-day-panel,
+.expense-category-group.expanded .expense-week-day-panel {
   grid-template-rows: 1fr;
 }
 
@@ -2433,6 +2439,10 @@ button.year-board-cell:hover {
 
 .expense-week-day-panel .expense-item {
   padding-left: 4px;
+}
+
+.expense-category-group .expense-week-day-panel .expense-item {
+  padding-left: 2px;
 }
 
 .expense-week-row-label,
@@ -2460,9 +2470,11 @@ button.year-board-cell:hover {
 .expense-category-row {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
+  width: 100%;
   padding: 10px 0;
   border-top: 1px solid var(--line);
+  text-align: left;
 }
 
 .expense-category-copy {
@@ -2643,7 +2655,9 @@ button.year-board-cell:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .expense-period-pane {
+  .expense-period-pane,
+  .expense-week-day-panel,
+  .expense-week-row-chevron {
     transition: none !important;
   }
 }

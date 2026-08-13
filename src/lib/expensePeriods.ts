@@ -337,6 +337,7 @@ export type CategorySlice = {
   total: number
   percent: number
   color: string
+  items: Expense[]
 }
 
 /** Category palette keyed off the journal accent (#2f6f8f). */
@@ -351,21 +352,32 @@ export const CATEGORY_COLORS: Record<ExpenseCategoryId, string> = {
 }
 
 export function summarizeCategories(expenses: Expense[]): CategorySlice[] {
-  const totals = new Map<ExpenseCategoryId, number>()
+  const groups = new Map<ExpenseCategoryId, Expense[]>()
   for (const expense of expenses) {
-    totals.set(expense.category, (totals.get(expense.category) ?? 0) + expense.amount)
+    const items = groups.get(expense.category)
+    if (items) items.push(expense)
+    else groups.set(expense.category, [expense])
   }
 
-  const grand = [...totals.values()].reduce((sum, n) => sum + n, 0)
+  const grand = [...groups.values()].reduce(
+    (sum, items) => sum + items.reduce((inner, item) => inner + item.amount, 0),
+    0
+  )
   if (grand <= 0) return []
 
-  return [...totals.entries()]
-    .map(([id, total]) => ({
-      id,
-      label: getCategoryLabel(id),
-      total,
-      percent: (total / grand) * 100,
-      color: CATEGORY_COLORS[id],
-    }))
+  return [...groups.entries()]
+    .map(([id, items]) => {
+      const total = items.reduce((sum, item) => sum + item.amount, 0)
+      return {
+        id,
+        label: getCategoryLabel(id),
+        total,
+        percent: (total / grand) * 100,
+        color: CATEGORY_COLORS[id],
+        items: items.sort(
+          (a, b) => new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime()
+        ),
+      }
+    })
     .sort((a, b) => b.total - a.total)
 }
