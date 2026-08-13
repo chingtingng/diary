@@ -27,6 +27,9 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
   const [open, setOpen] = useState(false)
   const [cursor, setCursor] = useState(() => startOfMonth(value))
   const rootRef = useRef<HTMLDivElement>(null)
+  const ignoreTriggerClick = useRef(false)
+  const pointerStartY = useRef(0)
+  const pointerMoved = useRef(false)
 
   useEffect(() => {
     if (open) setCursor(startOfMonth(value))
@@ -34,16 +37,16 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
 
   useEffect(() => {
     if (!open) return
-    const onPointerDown = (event: MouseEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false)
     }
-    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
     return () => {
-      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [open])
@@ -55,9 +58,13 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
   }, [cursor])
 
   const pick = (day: Date) => {
+    ignoreTriggerClick.current = true
     onChange(atLocalNoon(day))
     haptic('select')
     setOpen(false)
+    window.setTimeout(() => {
+      ignoreTriggerClick.current = false
+    }, 400)
   }
 
   return (
@@ -69,7 +76,10 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={`${label}: ${format(value, 'EEEE, MMMM d')}`}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (ignoreTriggerClick.current) return
+          setOpen((current) => !current)
+        }}
       >
         <span>{format(value, 'EEE, MMM d')}</span>
         <svg
@@ -99,11 +109,22 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
       </button>
 
       {open && (
-        <div className="date-field-calendar" role="dialog" aria-label="Choose date">
+        <div
+          className="date-field-calendar"
+          role="dialog"
+          aria-label="Choose date"
+          onPointerDown={(event) => {
+            event.stopPropagation()
+            pointerStartY.current = event.clientY
+            pointerMoved.current = false
+          }}
+          onPointerMove={(event) => {
+            if (Math.abs(event.clientY - pointerStartY.current) > 10) pointerMoved.current = true
+          }}
+        >
           <div className="date-field-cal-nav">
             <button
               type="button"
-              data-haptic="select"
               onClick={() => setCursor((month) => subMonths(month, 1))}
               aria-label="Previous month"
             >
@@ -112,7 +133,6 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
             <p>{format(cursor, 'MMMM yyyy')}</p>
             <button
               type="button"
-              data-haptic="select"
               onClick={() => setCursor((month) => addMonths(month, 1))}
               aria-label="Next month"
             >
@@ -133,7 +153,6 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
                 <button
                   key={day.toISOString()}
                   type="button"
-                  data-haptic="select"
                   className={[
                     'date-field-day',
                     outside ? 'outside' : '',
@@ -142,7 +161,13 @@ export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  onClick={() => pick(day)}
+                  onPointerUp={(event) => {
+                    if (event.pointerType === 'mouse' && event.button !== 0) return
+                    if (pointerMoved.current) return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    pick(day)
+                  }}
                 >
                   {format(day, 'd')}
                 </button>
