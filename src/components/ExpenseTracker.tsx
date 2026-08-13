@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { format, isToday, isYesterday } from 'date-fns'
 import {
   EXPENSE_PERIODS,
   buildSpendingBars,
@@ -58,10 +59,35 @@ function entryCountLabel(count: number): string {
   return `${count} ${count === 1 ? 'expense' : 'expenses'}`
 }
 
+function formatTxnDate(iso: string): string {
+  const date = new Date(iso)
+  if (isToday(date)) return 'Today'
+  if (isYesterday(date)) return 'Yesterday'
+  return format(date, 'EEE, MMM d')
+}
+
+function AccordionChevron() {
+  return (
+    <span className="expense-week-row-chevron" aria-hidden>
+      <svg viewBox="0 0 16 16" width="16" height="16" focusable="false">
+        <path
+          d="M5.5 2.5 L11 8 L5.5 13.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  )
+}
+
 function ExpenseTxnRow({
   expense,
   revealed,
   tabIndex,
+  meta,
   onOpen,
   onDelete,
   onRevealedChange,
@@ -69,6 +95,7 @@ function ExpenseTxnRow({
   expense: Expense
   revealed: boolean
   tabIndex?: number
+  meta?: string
   onOpen: () => void
   onDelete: () => void | Promise<void>
   onRevealedChange: (open: boolean) => void
@@ -90,7 +117,9 @@ function ExpenseTxnRow({
           <span className="expense-item-note">
             {expense.note.trim() || getCategoryLabel(expense.category)}
           </span>
-          <span className="expense-item-meta">{getCategoryLabel(expense.category)}</span>
+          <span className="expense-item-meta">
+            {meta ?? getCategoryLabel(expense.category)}
+          </span>
         </div>
         <span className="expense-item-amount">${formatMoney(expense.amount)}</span>
       </button>
@@ -117,6 +146,7 @@ export function ExpenseTracker({
   const [showAddForm, setShowAddForm] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set())
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => new Set())
   const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
   const addFormRef = useRef<HTMLFormElement>(null)
   const periodHostRef = useRef<HTMLElement>(null)
@@ -128,6 +158,7 @@ export function ExpenseTracker({
       haptic('select')
       setSwipeOpenId(null)
       setExpandedWeekDays(new Set())
+      setExpandedCategories(new Set())
       setAnchor((value) => shiftPeriod(value, period, direction))
     },
     [period]
@@ -181,11 +212,21 @@ export function ExpenseTracker({
     setPickerOpen(false)
     setShowAddForm(false)
     setExpandedWeekDays(new Set())
+    setExpandedCategories(new Set())
     setSwipeOpenId(null)
   }
 
   const toggleWeekDay = (key: string) => {
     setExpandedWeekDays((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const toggleCategory = (key: string) => {
+    setExpandedCategories((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
       else next.add(key)
@@ -291,6 +332,8 @@ export function ExpenseTracker({
             data-haptic="select"
             onClick={() => {
               setSwipeOpenId(null)
+              setExpandedWeekDays(new Set())
+              setExpandedCategories(new Set())
               setAnchor(new Date())
             }}
             disabled={current}
@@ -305,6 +348,7 @@ export function ExpenseTracker({
             value={anchor}
             onChange={(next) => {
               setExpandedWeekDays(new Set())
+              setExpandedCategories(new Set())
               setSwipeOpenId(null)
               setAnchor(next)
             }}
@@ -422,18 +466,7 @@ export function ExpenseTracker({
                       aria-expanded={expanded}
                       onClick={() => toggleWeekDay(group.key)}
                     >
-                      <span className="expense-week-row-chevron" aria-hidden>
-                        <svg viewBox="0 0 16 16" width="16" height="16" focusable="false">
-                          <path
-                            d="M5.5 2.5 L11 8 L5.5 13.5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.25"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
+                      <AccordionChevron />
                       <div className="expense-week-row-copy">
                         <span className="expense-week-row-label">{group.label}</span>
                         <span className="expense-week-row-meta">
@@ -471,23 +504,69 @@ export function ExpenseTracker({
             </ul>
           ) : period === 'month' ? (
             <ul className="expense-category-list">
-              {categorySlices.map((slice) => (
-                <li key={slice.id} className="expense-category-row">
-                  <CategoryIcon category={slice.id} size={36} />
-                  <div className="expense-category-copy">
-                    <div className="expense-category-top">
-                      <span className="expense-category-name">{slice.label}</span>
-                      <span className="expense-category-amount">${formatMoney(slice.total)}</span>
+              {categorySlices.map((slice) => {
+                const expanded = expandedCategories.has(slice.id)
+                return (
+                  <li
+                    key={slice.id}
+                    className={`expense-category-group${expanded ? ' expanded' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="expense-category-row"
+                      data-haptic="select"
+                      aria-expanded={expanded}
+                      onClick={() => toggleCategory(slice.id)}
+                    >
+                      <AccordionChevron />
+                      <CategoryIcon category={slice.id} size={36} />
+                      <div className="expense-category-copy">
+                        <div className="expense-category-top">
+                          <span className="expense-category-name">{slice.label}</span>
+                          <span className="expense-category-amount">
+                            ${formatMoney(slice.total)}
+                          </span>
+                        </div>
+                        <div className="expense-category-bar" aria-hidden>
+                          <span
+                            style={{
+                              width: `${Math.max(slice.percent, 4)}%`,
+                              background: slice.color,
+                            }}
+                          />
+                        </div>
+                        <span className="expense-category-meta">
+                          {slice.percent.toFixed(1)}% · {entryCountLabel(slice.items.length)}
+                        </span>
+                      </div>
+                    </button>
+                    <div
+                      className="expense-week-day-panel"
+                      inert={!expanded ? true : undefined}
+                    >
+                      <div className="expense-week-day-panel-inner">
+                        <ul className="expenses-list expense-txn-list">
+                          {slice.items.map((expense) => (
+                            <li key={expense.id}>
+                              <ExpenseTxnRow
+                                expense={expense}
+                                revealed={swipeOpenId === expense.id}
+                                tabIndex={expanded ? 0 : -1}
+                                meta={formatTxnDate(expense.spentAt)}
+                                onOpen={() => setSelectedId(expense.id)}
+                                onDelete={() => onDelete(expense.id)}
+                                onRevealedChange={(open) =>
+                                  setSwipeOpenId(open ? expense.id : null)
+                                }
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                    <div className="expense-category-bar" aria-hidden>
-                      <span
-                        style={{ width: `${Math.max(slice.percent, 4)}%`, background: slice.color }}
-                      />
-                    </div>
-                    <span className="expense-category-meta">{slice.percent.toFixed(1)}%</span>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           ) : (
             <ul className="expense-month-list">
@@ -500,6 +579,9 @@ export function ExpenseTracker({
                     onClick={() => {
                       setPeriod('month')
                       writeExpenseFilter('month')
+                      setExpandedWeekDays(new Set())
+                      setExpandedCategories(new Set())
+                      setSwipeOpenId(null)
                       setAnchor(row.date)
                     }}
                   >
