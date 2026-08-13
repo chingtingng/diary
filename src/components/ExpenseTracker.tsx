@@ -17,12 +17,16 @@ import {
   type Expense,
   type ExpenseCategoryId,
   type ExpenseInput,
+  type ExpensePatch,
 } from '../types/expense'
+import { DateTimePicker } from './DateTimePicker'
+import { ExpenseDetail } from './ExpenseDetail'
 
 interface ExpenseTrackerProps {
   expenses: Expense[]
   loading: boolean
   onAdd: (input: ExpenseInput) => Promise<Expense>
+  onSave: (id: string, patch: ExpensePatch) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
@@ -33,25 +37,28 @@ function formatMoney(amount: number): string {
   })
 }
 
-function todayInputValue(): string {
-  return format(new Date(), 'yyyy-MM-dd')
-}
-
 export function ExpenseTracker({
   expenses,
   loading,
   onAdd,
+  onSave,
   onDelete,
 }: ExpenseTrackerProps) {
   const [filter, setFilter] = useState<ExpenseFilter>('all')
   const [anchor, setAnchor] = useState(() => new Date())
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [category, setCategory] = useState<ExpenseCategoryId>('food')
-  const [spentOn, setSpentOn] = useState(todayInputValue)
+  const [spentAt, setSpentAt] = useState(() => new Date())
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+
+  const selectedExpense = useMemo(
+    () => expenses.find((expense) => expense.id === selectedId) ?? null,
+    [expenses, selectedId]
+  )
 
   const visibleExpenses = useMemo(
     () => filterExpenses(expenses, filter, anchor),
@@ -71,6 +78,15 @@ export function ExpenseTracker({
     setAnchor(new Date())
   }
 
+  const resetAddForm = () => {
+    setAmount('')
+    setNote('')
+    setCategory('food')
+    setSpentAt(new Date())
+    setError(null)
+    setShowAddForm(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -83,24 +99,41 @@ export function ExpenseTracker({
 
     setSubmitting(true)
     try {
-      const spentAt = new Date(`${spentOn}T12:00:00`)
       await onAdd({
         amount: Math.round(parsed * 100) / 100,
         note,
         category,
         spentAt: spentAt.toISOString(),
       })
-      setAmount('')
-      setNote('')
-      setCategory('food')
-      setSpentOn(todayInputValue())
-      setShowAddForm(false)
+      resetAddForm()
       if (filter !== 'all') setAnchor(spentAt)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save expense')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (selectedId) {
+    if (!selectedExpense) {
+      return (
+        <div className="expenses-view">
+          <p className="empty-list">This expense is no longer available.</p>
+          <button type="button" className="expense-form-cancel" onClick={() => setSelectedId(null)}>
+            ← Back to expenses
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <ExpenseDetail
+        expense={selectedExpense}
+        onSave={onSave}
+        onDelete={onDelete}
+        onBack={() => setSelectedId(null)}
+      />
+    )
   }
 
   return (
@@ -171,7 +204,10 @@ export function ExpenseTracker({
         <button
           type="button"
           className="expense-add-toggle"
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setSpentAt(new Date())
+            setShowAddForm(true)
+          }}
         >
           <span aria-hidden>+</span>
           Add expense
@@ -180,42 +216,27 @@ export function ExpenseTracker({
         <form className="expense-form" onSubmit={handleSubmit}>
           <div className="expense-form-heading">
             <p className="eyebrow">Add expense</p>
-            <button
-              type="button"
-              className="expense-form-cancel"
-              onClick={() => {
-                setShowAddForm(false)
-                setError(null)
-              }}
-            >
+            <button type="button" className="expense-form-cancel" onClick={resetAddForm}>
               Cancel
             </button>
           </div>
-          <div className="expense-form-row">
-            <label>
-              Amount
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                autoFocus
-              />
-            </label>
-            <label>
-              Date
-              <input
-                type="date"
-                value={spentOn}
-                onChange={(e) => setSpentOn(e.target.value)}
-                required
-              />
-            </label>
-          </div>
+
+          <label>
+            Amount
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              autoFocus
+            />
+          </label>
+
+          <DateTimePicker value={spentAt} onChange={setSpentAt} />
 
           <label>
             Category
@@ -266,29 +287,23 @@ export function ExpenseTracker({
                 <h3 className="expense-day-label">{group.label}</h3>
                 <ul className="expenses-list">
                   {group.items.map((expense) => (
-                    <li key={expense.id} className="expense-item">
-                      <div className="expense-item-main">
-                        <span className="expense-item-note">
-                          {expense.note.trim() || getCategoryLabel(expense.category)}
-                        </span>
-                        <span className="expense-item-meta">
-                          {getCategoryLabel(expense.category)}
-                          {expense.note.trim()
-                            ? ` · ${format(new Date(expense.spentAt), 'h:mm a')}`
-                            : ''}
-                        </span>
-                      </div>
-                      <div className="expense-item-side">
+                    <li key={expense.id}>
+                      <button
+                        type="button"
+                        className="expense-item expense-item-button"
+                        onClick={() => setSelectedId(expense.id)}
+                      >
+                        <div className="expense-item-main">
+                          <span className="expense-item-note">
+                            {expense.note.trim() || getCategoryLabel(expense.category)}
+                          </span>
+                          <span className="expense-item-meta">
+                            {getCategoryLabel(expense.category)} ·{' '}
+                            {format(new Date(expense.spentAt), 'h:mm a')}
+                          </span>
+                        </div>
                         <span className="expense-item-amount">{formatMoney(expense.amount)}</span>
-                        <button
-                          type="button"
-                          className="expense-delete"
-                          onClick={() => onDelete(expense.id)}
-                          aria-label="Delete expense"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      </button>
                     </li>
                   ))}
                 </ul>
