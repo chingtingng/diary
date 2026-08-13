@@ -7,7 +7,7 @@ export function exportEntriesAsText(entries: Entry[]): string {
   )
 
   const lines: string[] = [
-    'My Diary Export',
+    'Daybook Journal Export',
     `Exported: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`,
     `Total entries: ${sorted.length}`,
     '',
@@ -49,6 +49,6 @@ export function downloadTextFile(content: string, filename: string) {
 
 export function exportAndDownload(entries: Entry[]) {
   const text = exportEntriesAsText(entries)
-  const filename = `diary-export-${format(new Date(), 'yyyy-MM-dd')}.txt`
+  const filename = `daybook-journal-${format(new Date(), 'yyyy-MM-dd')}.txt`
   downloadTextFile(text, filename)
 }

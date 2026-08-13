@@ -101,7 +101,7 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
     return (
       <div className="editor-empty">
         <div className="editor-empty-content">
-          <p className="eyebrow">Your journal</p>
+          <p className="eyebrow">Journal</p>
           <h2>Pick a day, or start a fresh page</h2>
           <p>Thoughts auto-save. Tag a mood to colour your calendar.</p>
         </div>

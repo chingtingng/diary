@@ -35,9 +35,9 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
     <div className="auth-screen">
       <div className="auth-card">
         <OpenBookMark className="auth-mark" />
-        <p className="brand-kicker">Private journal</p>
-        <h1>My Diary</h1>
-        <p className="auth-subtitle">A quiet place for daily thoughts and moods</p>
+        <p className="brand-kicker">Private daybook</p>
+        <h1>Daybook</h1>
+        <p className="auth-subtitle">Journal your days and track what you spend</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label>

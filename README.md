@@ -1,19 +1,20 @@
-# My Diary
+# Daybook
 
-A lightweight personal diary web app — like iPhone Notes, but built for daily thoughts. Install it on your iPhone home screen as a PWA, write entries with automatic timestamps, and export everything as plain text.
+A lightweight personal daybook — journal your days, track moods, and log expenses in one quiet place. Install it on your iPhone home screen as a PWA, write with automatic timestamps, and export everything as plain text.
 
 ## Features
 
-- **Daily entries** with automatic date and time stamps
-- **Auto-save** as you type
-- **Export all entries** as a `.txt` file
+- **Journal mode** — daily pages with auto-save and mood tags
+- **Mood calendar** — colour-tagged calendar / mood board
+- **Expenses mode** — log spending by category with monthly totals
+- **Export** — download journal entries or expenses as `.txt`
 - **PWA support** — add to iPhone/Android home screen
-- **Supabase sync** — access your diary across devices (optional)
+- **Supabase sync** — access your daybook across devices (optional)
 - **Local mode** — works immediately without setup (data stored in browser)
 
 ## Quick Start (Local Mode)
 
-No setup required — just run the app and start writing. Entries are saved in your browser's local storage.
+No setup required — just run the app and start writing. Data is saved in your browser's local storage.
 
 ```bash
 npm install
@@ -21,6 +22,8 @@ npm run dev
 ```
 
 Open http://localhost:5173 in your browser.
+
+Use the header tabs — **Journal**, **Calendar**, and **Expenses** — to move between views.
 
 ## Supabase Setup (Cloud Sync)
 
@@ -30,15 +33,17 @@ For syncing across devices, set up Supabase:
 
 Go to [supabase.com](https://supabase.com) and create a new project.
 
-### 2. Run the database migration
+### 2. Run the database migrations
 
 In the Supabase SQL Editor, run the contents of:
 
 ```
 supabase/migrations/001_create_entries.sql
+supabase/migrations/002_add_mood.sql
+supabase/migrations/003_create_expenses.sql
 ```
 
-This creates the `entries` table with row-level security so each user only sees their own entries.
+These create the `entries` and `expenses` tables with row-level security so each user only sees their own data.
 
 ### 3. Configure environment variables
 
@@ -70,6 +75,7 @@ Restart the dev server after adding `.env`.
 Build for production:
 
 ```bash
+npm install
 npm run build
 ```
 
@@ -83,9 +89,9 @@ Deploy the `dist/` folder to any static host (Vercel, Netlify, Cloudflare Pages,
 
 ## Mood calendar
 
-Tag each entry with a mood emoji (Great / Good / Okay / Low / Rough). The **Calendar** tab colours each day and shows the emoji so you can see your emotional landscape at a glance.
+Tag each journal entry with a mood emoji (Great / Good / Okay / Low / Rough). The **Calendar** tab colours each day and shows the emoji so you can see your emotional landscape at a glance.
 
-After deploying, run this in the Supabase SQL Editor if you use cloud sync:
+After deploying, run this in the Supabase SQL Editor if you use cloud sync and have not already:
 
 ```sql
 alter table public.entries

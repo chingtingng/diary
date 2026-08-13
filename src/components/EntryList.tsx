@@ -32,11 +32,11 @@ export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryLi
     <aside className="entry-list">
       <button type="button" className="new-entry-btn" onClick={onNewEntry}>
         <span className="new-entry-icon">+</span>
-        Start journaling
+        New page
       </button>
 
       {visibleEntries.length === 0 ? (
-        <p className="empty-list">No pages yet. Tap above to begin.</p>
+        <p className="empty-list">No journal pages yet. Tap above to begin.</p>
       ) : (
         <ul className="entries">
           {visibleEntries.map((entry) => {

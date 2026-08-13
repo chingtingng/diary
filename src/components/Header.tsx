@@ -3,7 +3,7 @@ import type { StorageMode } from '../lib/storage'
 import { MenuDots } from './MenuDots'
 import { OpenBookMark } from './OpenBookMark'
 
-export type AppView = 'journal' | 'calendar'
+export type AppView = 'journal' | 'calendar' | 'expenses'
 
 interface HeaderProps {
   onExport: () => void
@@ -29,8 +29,8 @@ export function Header({
       <div className="header-brand">
         <OpenBookMark />
         <div>
-          <p className="brand-kicker">Private journal</p>
-          <h1>My Diary</h1>
+          <p className="brand-kicker">Private daybook</p>
+          <h1>Daybook</h1>
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export function Header({
           className={view === 'journal' ? 'active' : ''}
           onClick={() => onViewChange('journal')}
         >
-          Pages
+          Journal
         </button>
         <button
           type="button"
@@ -48,6 +48,13 @@ export function Header({
           onClick={() => onViewChange('calendar')}
         >
           Calendar
+        </button>
+        <button
+          type="button"
+          className={view === 'expenses' ? 'active' : ''}
+          onClick={() => onViewChange('expenses')}
+        >
+          Expenses
         </button>
       </nav>
 
