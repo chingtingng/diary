@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/GlacialIndifference-Regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  src: url('/fonts/GlacialIndifference-Bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --ink: #1c2430;
   --ink-soft: #5c6675;
@@ -14,8 +30,8 @@
   --radius-sm: 12px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-display: 'Glacial Indifference', 'Poppins', 'Montserrat', sans-serif;
+  --font-ui: 'Poppins', 'Glacial Indifference', 'Montserrat', sans-serif;
   font-family: var(--font-ui);
   line-height: 1.5;
   color: var(--ink);
