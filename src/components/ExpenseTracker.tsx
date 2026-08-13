@@ -203,25 +203,27 @@ export function ExpenseTracker({
 
       <div className="expense-period-header">
         <div className="expense-period-heading">
-          <button
-            type="button"
-            className="expense-period-shift"
-            data-haptic="select"
-            onClick={() => setAnchor((value) => shiftPeriod(value, period, -1))}
-            aria-label={`Previous ${period}`}
-          >
-            ‹
-          </button>
           <h2 className="expenses-title">{formatPeriodLabel(anchor, period)}</h2>
-          <button
-            type="button"
-            className="expense-period-shift"
-            data-haptic="select"
-            onClick={() => setAnchor((value) => shiftPeriod(value, period, 1))}
-            aria-label={`Next ${period}`}
-          >
-            ›
-          </button>
+          <div className="expense-period-shifts" role="group" aria-label={`${period} navigation`}>
+            <button
+              type="button"
+              className="expense-period-shift"
+              data-haptic="select"
+              onClick={() => setAnchor((value) => shiftPeriod(value, period, -1))}
+              aria-label={`Previous ${period}`}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="expense-period-shift"
+              data-haptic="select"
+              onClick={() => setAnchor((value) => shiftPeriod(value, period, 1))}
+              aria-label={`Next ${period}`}
+            >
+              ›
+            </button>
+          </div>
         </div>
         <button
           type="button"

@@ -8,17 +8,22 @@ interface SpendingBarChartProps {
 export function SpendingBarChart({ bars, density = 'week' }: SpendingBarChartProps) {
   const max = Math.max(...bars.map((bar) => bar.total), 0)
   const showEveryLabel = density !== 'month'
-  const labelStep = density === 'month' ? Math.ceil(bars.length / 7) : 1
+  const labelStep = density === 'month' ? Math.ceil(bars.length / 6) : 1
 
   return (
     <div className={`spending-chart spending-chart-${density}`} role="img" aria-label="Spending chart">
       <div className="spending-chart-bars">
         {bars.map((bar, index) => {
-          const height = max > 0 ? Math.max((bar.total / max) * 100, bar.total > 0 ? 8 : 0) : 0
+          // Empty days still get a short stub so the week/month silhouette matches the mockup.
+          const ratio = max > 0 ? bar.total / max : 0
+          const height = bar.total > 0 ? Math.max(ratio * 100, 14) : density === 'month' ? 6 : 10
           const showLabel =
             showEveryLabel || index === 0 || index === bars.length - 1 || index % labelStep === 0
           return (
-            <div key={bar.key} className={`spending-chart-col${bar.active ? ' active' : ''}`}>
+            <div
+              key={bar.key}
+              className={`spending-chart-col${bar.active ? ' active' : ''}${bar.total > 0 ? ' has-value' : ''}`}
+            >
               <div className="spending-chart-track">
                 <div
                   className="spending-chart-fill"

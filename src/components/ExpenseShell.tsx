@@ -62,7 +62,7 @@ export function ExpenseShell({
           >
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
               <path
-                d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"
+                d="M12 14V4m0 0 4 4m-4-4-4 4M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"

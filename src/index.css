@@ -2162,9 +2162,14 @@ button.year-board-cell:hover {
 
 .expense-app {
   min-height: 100dvh;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   position: relative;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 0 0 1px var(--line), var(--shadow);
 }
 
 .expense-topbar {
@@ -2356,7 +2361,7 @@ button.year-board-cell:hover {
 .expense-period-heading {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -2364,11 +2369,16 @@ button.year-board-cell:hover {
   font-size: 1.2rem;
 }
 
+.expense-period-shifts {
+  display: inline-flex;
+  gap: 2px;
+}
+
 .expense-period-shift {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   line-height: 1;
   color: var(--ink-soft);
 }
@@ -2445,9 +2455,13 @@ button.year-board-cell:hover {
 .spending-chart-fill {
   width: 100%;
   border-radius: 8px 8px 3px 3px;
-  background: #c5d0df;
+  background: #d5dde8;
   min-height: 0;
   transition: height 0.35s ease, background 0.2s ease;
+}
+
+.spending-chart-col.has-value .spending-chart-fill {
+  background: #a8b7cb;
 }
 
 .spending-chart-col.active .spending-chart-fill {
