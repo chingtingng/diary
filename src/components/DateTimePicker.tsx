@@ -113,6 +113,7 @@ function TimeColumn<T extends string | number>({
               aria-selected={active}
               ref={active ? selectedRef : undefined}
               className={`datetime-time-option${active ? ' active' : ''}`}
+              data-haptic="select"
               onClick={() => onChange(option.id)}
             >
               {option.label}
@@ -181,6 +182,7 @@ export function DateTimePicker({ value, onChange, label = 'When' }: DateTimePick
         <button
           type="button"
           className={`datetime-chip ${openPanel === 'date' ? 'active' : ''}`}
+          data-haptic="select"
           aria-expanded={openPanel === 'date'}
           onClick={() => setOpenPanel((panel) => (panel === 'date' ? null : 'date'))}
         >
@@ -190,6 +192,7 @@ export function DateTimePicker({ value, onChange, label = 'When' }: DateTimePick
         <button
           type="button"
           className={`datetime-chip ${openPanel === 'time' ? 'active' : ''}`}
+          data-haptic="select"
           aria-expanded={openPanel === 'time'}
           onClick={() => setOpenPanel((panel) => (panel === 'time' ? null : 'time'))}
         >
@@ -230,6 +233,7 @@ export function DateTimePicker({ value, onChange, label = 'When' }: DateTimePick
                 <button
                   key={day.toISOString()}
                   type="button"
+                  data-haptic="select"
                   className={[
                     'datetime-day',
                     outside ? 'outside' : '',

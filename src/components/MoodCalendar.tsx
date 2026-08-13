@@ -174,6 +174,7 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
               <button
                 type="button"
                 className={`today-btn${viewingThisYear ? ' current' : ''}`}
+                data-haptic="select"
                 onClick={() => setYear(new Date().getFullYear())}
                 disabled={viewingThisYear}
               >
@@ -203,6 +204,7 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
               <button
                 type="button"
                 className={`today-btn${viewingThisMonth ? ' current' : ''}`}
+                data-haptic="select"
                 onClick={() => setMonth(startOfMonth(new Date()))}
                 disabled={viewingThisMonth}
               >
@@ -241,6 +243,7 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
                 <button
                   key={key}
                   type="button"
+                  data-haptic="select"
                   className={[
                     'calendar-day',
                     mode === 'board' ? 'board-day' : '',
@@ -321,6 +324,7 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
                     <button
                       key={dayNum}
                       type="button"
+                      data-haptic="select"
                       className={[
                         'year-board-cell',
                         mood ? 'has-mood' : dayEntries.length ? 'has-entry' : '',

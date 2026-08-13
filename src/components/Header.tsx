@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import type { StorageMode } from '../lib/storage'
+import { shouldHandleSpaClick, viewHref, type AppView } from '../lib/navigation'
 import { MenuDots } from './MenuDots'
 import { OpenBookMark } from './OpenBookMark'
 
-export type AppView = 'journal' | 'calendar' | 'expenses'
+export type { AppView }
 
 interface HeaderProps {
   onExport: () => void
@@ -26,6 +27,12 @@ export function Header({
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const go = (next: AppView) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!shouldHandleSpaClick(event)) return
+    event.preventDefault()
+    onViewChange(next)
+  }
+
   return (
     <header className="app-header">
       <div className="header-brand">
@@ -37,37 +44,44 @@ export function Header({
       </div>
 
       <nav className="view-tabs" aria-label="Views">
-        <button
-          type="button"
+        <a
+          href={viewHref('journal')}
           className={view === 'journal' ? 'active' : ''}
-          onClick={() => onViewChange('journal')}
+          aria-current={view === 'journal' ? 'page' : undefined}
+          data-haptic="select"
+          onClick={go('journal')}
         >
           Journal
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
+          href={viewHref('calendar')}
           className={view === 'calendar' ? 'active' : ''}
-          onClick={() => onViewChange('calendar')}
+          aria-current={view === 'calendar' ? 'page' : undefined}
+          data-haptic="select"
+          onClick={go('calendar')}
         >
           Calendar
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
+          href={viewHref('expenses')}
           className={view === 'expenses' ? 'active' : ''}
-          onClick={() => onViewChange('expenses')}
+          aria-current={view === 'expenses' ? 'page' : undefined}
+          data-haptic="select"
+          onClick={go('expenses')}
         >
           Expenses
-        </button>
+        </a>
       </nav>
 
       <div className="header-actions">
-        <button type="button" className="header-btn" onClick={onExport}>
+        <button type="button" className="header-btn" data-haptic="light" onClick={onExport}>
           Export
         </button>
 
         <button
           type="button"
           className="header-btn menu-toggle"
+          data-haptic="light"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Menu"
           aria-expanded={menuOpen}
@@ -85,6 +99,7 @@ export function Header({
                   type="button"
                   className="menu-item"
                   role="menuitem"
+                  data-haptic="select"
                   onClick={() => {
                     setMenuOpen(false)
                     onOpenInsights()
@@ -104,6 +119,7 @@ export function Header({
                   type="button"
                   className="menu-item"
                   role="menuitem"
+                  data-haptic="light"
                   onClick={() => {
                     setMenuOpen(false)
                     onSignOut()

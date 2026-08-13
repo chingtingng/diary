@@ -94,7 +94,7 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
   return (
     <div className="expenses-view expense-detail">
       <div className="expense-detail-top">
-        <button type="button" className="insights-close" onClick={onBack} aria-label="Back to expenses">
+        <button type="button" className="insights-close" data-haptic="light" onClick={onBack} aria-label="Back to expenses">
           ←
         </button>
         <div className="expense-detail-summary">
@@ -158,12 +158,13 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
         {saved && !error && <p className="expense-form-saved">Saved</p>}
 
         <div className="expense-detail-actions">
-          <button type="submit" className="expense-submit" disabled={saving || deleting}>
+          <button type="submit" className="expense-submit" data-haptic="success" disabled={saving || deleting}>
             {saving ? 'Saving…' : 'Save changes'}
           </button>
           <button
             type="button"
             className="expense-detail-delete"
+            data-haptic="error"
             onClick={handleDelete}
             disabled={deleting || saving}
           >

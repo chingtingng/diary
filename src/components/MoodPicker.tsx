@@ -18,6 +18,7 @@ export function MoodPicker({ value, onChange }: MoodPickerProps) {
               key={mood.id}
               type="button"
               className={`mood-chip ${selected ? 'selected' : ''}`}
+              data-haptic="select"
               style={
                 {
                   '--mood': mood.color,

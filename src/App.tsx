@@ -4,16 +4,31 @@ import { EntryEditor, type EntryDraft } from './components/EntryEditor'
 import { EntryList } from './components/EntryList'
 import { ExpenseInsights } from './components/ExpenseInsights'
 import { ExpenseTracker } from './components/ExpenseTracker'
-import { Header, type AppView } from './components/Header'
+import { Header } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
 import { exportAndDownload } from './lib/export'
 import { exportExpensesAndDownload } from './lib/expenseExport'
+import {
+  locationToPath,
+  parsePath,
+  type AppLocation,
+  type AppView,
+} from './lib/navigation'
+import { readLastView, writeLastView } from './lib/prefs'
 import { getEntry } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useEntries } from './hooks/useEntries'
 import { useExpenses } from './hooks/useExpenses'
 import { isBlankEntry, type Entry, type EntryPatch } from './types/entry'
 import './index.css'
+
+function initialLocation(): AppLocation {
+  const path = window.location.pathname
+  if (path === '/' || path === '') {
+    return { view: readLastView() ?? 'journal', expenseScreen: 'list' }
+  }
+  return parsePath(path)
+}
 
 function App() {
   const {
@@ -38,11 +53,39 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
-  const [view, setView] = useState<AppView>('journal')
-  const [expenseScreen, setExpenseScreen] = useState<'list' | 'insights'>('list')
+  const [location, setLocation] = useState<AppLocation>(initialLocation)
+  const view = location.view
+  const expenseScreen = location.expenseScreen
   const draftRef = useRef<EntryDraft | null>(null)
   const selectedIdRef = useRef<string | null>(null)
   const discardingIdsRef = useRef(new Set<string>())
+
+  const goTo = useCallback((next: AppLocation, mode: 'push' | 'replace' = 'push') => {
+    const path = locationToPath(next)
+    if (window.location.pathname !== path) {
+      if (mode === 'replace') window.history.replaceState(next, '', path)
+      else window.history.pushState(next, '', path)
+    }
+    writeLastView(next.view)
+    setLocation(next)
+  }, [])
+
+  useEffect(() => {
+    const current = locationToPath(location)
+    if (window.location.pathname !== current) {
+      window.history.replaceState(location, '', current)
+    }
+  }, [location])
+
+  useEffect(() => {
+    const onPopState = () => {
+      const next = parsePath(window.location.pathname)
+      writeLastView(next.view)
+      setLocation(next)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   const selectEntry = useCallback((id: string | null) => {
     selectedIdRef.current = id
@@ -106,9 +149,9 @@ function App() {
     await discardBlankEntry(selectedIdRef.current)
     const entry = await addEntry()
     selectEntry(entry.id)
-    setView('journal')
+    goTo({ view: 'journal', expenseScreen: 'list' })
     setShowList(false)
-  }, [addEntry, discardBlankEntry, selectEntry])
+  }, [addEntry, discardBlankEntry, goTo, selectEntry])
 
   const handleSelect = useCallback(
     async (id: string) => {
@@ -116,10 +159,10 @@ function App() {
         await discardBlankEntry(selectedIdRef.current)
       }
       selectEntry(id)
-      setView('journal')
+      goTo({ view: 'journal', expenseScreen: 'list' })
       setShowList(false)
     },
-    [discardBlankEntry, selectEntry]
+    [discardBlankEntry, goTo, selectEntry]
   )
 
   const handleCalendarSelect = useCallback(
@@ -128,7 +171,7 @@ function App() {
 
       if (entryId) {
         selectEntry(entryId)
-        setView('journal')
+        goTo({ view: 'journal', expenseScreen: 'list' })
         setShowList(false)
         return
       }
@@ -136,10 +179,10 @@ function App() {
       stamped.setHours(12, 0, 0, 0)
       const entry = await addEntry(stamped.toISOString())
       selectEntry(entry.id)
-      setView('journal')
+      goTo({ view: 'journal', expenseScreen: 'list' })
       setShowList(false)
     },
-    [addEntry, discardBlankEntry, selectEntry]
+    [addEntry, discardBlankEntry, goTo, selectEntry]
   )
 
   const handleSave = useCallback(
@@ -173,11 +216,14 @@ function App() {
         if (discarded) selectEntry(null)
         setShowList(true)
       }
-      if (next !== 'expenses') setExpenseScreen('list')
-      setView(next)
+      goTo({ view: next, expenseScreen: 'list' })
     },
-    [discardBlankEntry, selectEntry]
+    [discardBlankEntry, goTo, selectEntry]
   )
+
+  const handleOpenInsights = useCallback(() => {
+    goTo({ view: 'expenses', expenseScreen: 'insights' })
+  }, [goTo])
 
   const handleExport = useCallback(() => {
     if (view === 'expenses') {
@@ -220,9 +266,7 @@ function App() {
         view={view}
         onViewChange={handleViewChange}
         onOpenInsights={
-          view === 'expenses' && expenseScreen === 'list'
-            ? () => setExpenseScreen('insights')
-            : undefined
+          view === 'expenses' && expenseScreen === 'list' ? handleOpenInsights : undefined
         }
       />
 
@@ -232,7 +276,7 @@ function App() {
             {expenseScreen === 'insights' ? (
               <ExpenseInsights
                 expenses={expenses}
-                onClose={() => setExpenseScreen('list')}
+                onClose={() => goTo({ view: 'expenses', expenseScreen: 'list' })}
               />
             ) : (
               <ExpenseTracker
@@ -259,6 +303,7 @@ function App() {
             <button
               type="button"
               className="mobile-back"
+              data-haptic="select"
               onClick={handleBackToList}
               aria-hidden={showList}
               style={{ visibility: showList ? 'hidden' : 'visible' }}

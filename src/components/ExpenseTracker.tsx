@@ -11,6 +11,7 @@ import {
   type ExpenseFilter,
   type ExpensePeriod,
 } from '../lib/expensePeriods'
+import { readExpenseFilter, writeExpenseFilter } from '../lib/prefs'
 import {
   EXPENSE_CATEGORIES,
   getCategoryLabel,
@@ -46,7 +47,7 @@ export function ExpenseTracker({
   onSave,
   onDelete,
 }: ExpenseTrackerProps) {
-  const [filter, setFilter] = useState<ExpenseFilter>('all')
+  const [filter, setFilter] = useState<ExpenseFilter>(readExpenseFilter)
   const [anchor, setAnchor] = useState(() => new Date())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
@@ -77,6 +78,7 @@ export function ExpenseTracker({
 
   const handleFilterChange = (next: ExpenseFilter) => {
     setFilter(next)
+    writeExpenseFilter(next)
     setAnchor(new Date())
   }
 
@@ -159,10 +161,20 @@ export function ExpenseTracker({
             onChange={handleFilterChange}
           />
         </div>
+      </div>
+
+      <div className="expenses-summary-row">
+        <div className="expenses-total">
+          <span className="expenses-total-label">
+            {filter === 'all' ? 'Total expenses' : 'Spent'}
+          </span>
+          <span className="expenses-total-amount">{formatMoney(total)}</span>
+        </div>
         {filter !== 'all' && (
           <div className="calendar-nav expenses-period-nav">
             <button
               type="button"
+              data-haptic="select"
               onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
               aria-label={`Previous ${filter}`}
             >
@@ -171,6 +183,7 @@ export function ExpenseTracker({
             <button
               type="button"
               className={`today-btn${current ? ' current' : ''}`}
+              data-haptic="select"
               onClick={() => setAnchor(new Date())}
               disabled={current}
             >
@@ -178,6 +191,7 @@ export function ExpenseTracker({
             </button>
             <button
               type="button"
+              data-haptic="select"
               onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
               aria-label={`Next ${filter}`}
             >
@@ -187,17 +201,11 @@ export function ExpenseTracker({
         )}
       </div>
 
-      <div className="expenses-total">
-        <span className="expenses-total-label">
-          {filter === 'all' ? 'Total expenses' : 'Spent'}
-        </span>
-        <span className="expenses-total-amount">{formatMoney(total)}</span>
-      </div>
-
       {!showAddForm ? (
         <button
           type="button"
           className="expense-add-toggle"
+          data-haptic="light"
           onClick={() => {
             setSpentAt(new Date())
             setShowAddForm(true)
@@ -253,7 +261,7 @@ export function ExpenseTracker({
 
           {error && <p className="expense-form-error">{error}</p>}
 
-          <button type="submit" className="expense-submit" disabled={submitting}>
+          <button type="submit" className="expense-submit" data-haptic="success" disabled={submitting}>
             {submitting ? 'Saving…' : 'Save expense'}
           </button>
         </form>
@@ -279,6 +287,7 @@ export function ExpenseTracker({
                       <button
                         type="button"
                         className="expense-item expense-item-button"
+                        data-haptic="select"
                         onClick={() => setSelectedId(expense.id)}
                       >
                         <div className="expense-item-main">
