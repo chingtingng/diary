@@ -2,12 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthForm } from './components/AuthForm'
 import { EntryEditor, type EntryDraft } from './components/EntryEditor'
 import { EntryList } from './components/EntryList'
-import { Header, type AppView } from './components/Header'
+import { ExpenseTracker } from './components/ExpenseTracker'
+import { Header, type AppMode, type AppView } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
 import { exportAndDownload } from './lib/export'
+import { exportExpensesAndDownload } from './lib/expenseExport'
 import { getEntry } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useEntries } from './hooks/useEntries'
+import { useExpenses } from './hooks/useExpenses'
 import { isBlankEntry, type Entry, type EntryPatch } from './types/entry'
 import './index.css'
 
@@ -24,9 +27,16 @@ function App() {
   const { entries, loading, addEntry, saveEntry, removeEntry, storageMode } = useEntries(
     user?.id
   )
+  const {
+    expenses,
+    loading: expensesLoading,
+    addExpense,
+    removeExpense,
+  } = useExpenses(user?.id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
+  const [mode, setMode] = useState<AppMode>('journal')
   const [view, setView] = useState<AppView>('journal')
   const draftRef = useRef<EntryDraft | null>(null)
   const selectedIdRef = useRef<string | null>(null)
@@ -166,14 +176,35 @@ function App() {
     [discardBlankEntry, selectEntry]
   )
 
+  const handleModeChange = useCallback(
+    async (next: AppMode) => {
+      if (next === 'expenses') {
+        const discarded = await discardBlankEntry(selectedIdRef.current)
+        if (discarded) selectEntry(null)
+        setShowList(true)
+      }
+      setMode(next)
+    },
+    [discardBlankEntry, selectEntry]
+  )
+
   const handleExport = useCallback(() => {
+    if (mode === 'expenses') {
+      if (expenses.length === 0) {
+        alert('No expenses to export yet.')
+        return
+      }
+      exportExpensesAndDownload(expenses)
+      return
+    }
+
     const exportable = entries.filter((e) => !isBlankEntry(e.content, e.mood))
     if (exportable.length === 0) {
       alert('No entries to export yet.')
       return
     }
     exportAndDownload(exportable)
-  }, [entries])
+  }, [entries, expenses, mode])
 
   if (isSupabaseConfigured && authLoading) {
     return (
@@ -195,12 +226,23 @@ function App() {
         storageMode={storageMode}
         onSignOut={isSupabaseConfigured ? signOut : undefined}
         username={username}
+        mode={mode}
+        onModeChange={handleModeChange}
         view={view}
         onViewChange={handleViewChange}
       />
 
       <main className="main">
-        {view === 'calendar' ? (
+        {mode === 'expenses' ? (
+          <div className="expenses-shell">
+            <ExpenseTracker
+              expenses={expenses}
+              loading={expensesLoading}
+              onAdd={addExpense}
+              onDelete={removeExpense}
+            />
+          </div>
+        ) : view === 'calendar' ? (
           <div className="calendar-view">
             <MoodCalendar
               entries={entries}

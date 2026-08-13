@@ -10,7 +10,7 @@ function normalizeSupabaseUrl(raw: string | undefined): string | null {
   const match = cleaned.match(/([a-z0-9-]+)\.supabase\.co/i)
   if (!match) {
     console.error(
-      '[diary] VITE_SUPABASE_URL must contain <project-ref>.supabase.co — got:',
+      '[daybook] VITE_SUPABASE_URL must contain <project-ref>.supabase.co — got:',
       raw
     )
     return null
@@ -41,5 +41,5 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   : null
 
 if (import.meta.env.DEV && isSupabaseConfigured) {
-  console.info('[diary] Supabase URL:', supabaseUrl)
+  console.info('[daybook] Supabase URL:', supabaseUrl)
 }

@@ -1,4 +1,4 @@
-/** Brand mark used in header/auth — open book instead of ✦ */
+/** Brand mark used in header/auth — open daybook */
 export function OpenBookMark({ className = 'header-mark' }: { className?: string }) {
   return (
     <span className={className} aria-hidden>

@@ -16,9 +16,9 @@ export default defineConfig({
         'pwa-512x512.png',
       ],
       manifest: {
-        name: 'My Diary',
-        short_name: 'Diary',
-        description: 'A simple personal diary for daily thoughts',
+        name: 'Daybook',
+        short_name: 'Daybook',
+        description: 'A personal daybook for journaling and expenses',
         theme_color: '#eef3f7',
         background_color: '#eef3f7',
         display: 'standalone',

@@ -98,6 +98,13 @@ button {
   z-index: 10;
 }
 
+.header-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 .header-brand {
   display: flex;
   align-items: center;
@@ -129,6 +136,7 @@ button {
   letter-spacing: -0.02em;
 }
 
+.mode-tabs,
 .view-tabs {
   display: flex;
   gap: 4px;
@@ -137,6 +145,7 @@ button {
   background: rgb(28 36 48 / 5%);
 }
 
+.mode-tabs button,
 .view-tabs button {
   padding: 8px 14px;
   border-radius: 999px;
@@ -147,10 +156,24 @@ button {
   transition: background 0.15s, color 0.15s, transform 0.15s;
 }
 
+.mode-tabs button.active,
 .view-tabs button.active {
   background: var(--paper-solid);
   color: var(--ink);
   box-shadow: 0 1px 4px rgb(28 36 48 / 8%);
+}
+
+.mode-tabs {
+  background: color-mix(in srgb, var(--accent) 12%, rgb(28 36 48 / 5%));
+}
+
+.view-tabs {
+  padding: 3px;
+}
+
+.view-tabs button {
+  padding: 6px 12px;
+  font-size: 0.75rem;
 }
 
 .header-actions {
@@ -293,10 +316,201 @@ button {
   box-shadow: var(--shadow);
 }
 
-.calendar-view {
+.calendar-view,
+.expenses-shell {
   margin: 16px;
   padding: 20px;
   overflow: auto;
+}
+
+.expenses-shell {
+  background: var(--paper);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  flex: 1;
+}
+
+.expenses-view {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.expenses-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.expenses-title {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.expenses-subtitle {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.expenses-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.expenses-total-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.expenses-total-amount {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.expenses-breakdown {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expenses-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.expense-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.expense-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.expense-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.expense-form input,
+.expense-form select {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-size: 1rem;
+  background: rgb(255 255 255 / 80%);
+  color: var(--ink);
+}
+
+.expense-form input:focus,
+.expense-form select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.expense-form-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+.expense-submit {
+  padding: 13px;
+  background: var(--ink);
+  color: white;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.expense-submit:disabled {
+  opacity: 0.6;
+}
+
+.expenses-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expense-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.expense-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.expense-item-amount {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.expense-item-meta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.expense-item-note {
+  font-size: 0.875rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.expense-delete {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--danger);
+  background: #f8e3e3;
 }
 
 /* Entry list */
@@ -997,7 +1211,7 @@ button.year-board-cell:hover {
     grid-template-columns: 1fr auto;
     grid-template-areas:
       'brand actions'
-      'tabs tabs';
+      'nav nav';
   }
 
   .header-brand {
@@ -1008,13 +1222,26 @@ button.year-board-cell:hover {
     grid-area: actions;
   }
 
-  .view-tabs {
-    grid-area: tabs;
+  .header-nav {
+    grid-area: nav;
     justify-self: stretch;
+    align-items: stretch;
   }
 
+  .mode-tabs,
+  .view-tabs {
+    width: 100%;
+  }
+
+  .mode-tabs button,
   .view-tabs button {
     flex: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .expense-form-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1039,9 +1266,14 @@ button.year-board-cell:hover {
     display: flex;
   }
 
-  .calendar-view {
+  .calendar-view,
+  .expenses-shell {
     margin: 12px;
     padding: 16px;
+  }
+
+  .expenses-total-amount {
+    font-size: 1.65rem;
   }
 
   .calendar-day {

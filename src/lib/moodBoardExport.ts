@@ -84,7 +84,7 @@ export async function exportYearMoodBoardPng(entries: Entry[], year: number): Pr
   ctx.fillStyle = '#5c6675'
   ctx.font = '500 13px Manrope, system-ui, sans-serif'
   const daysWithMood = [...colors.keys()].filter((k) => k.startsWith(`${year}-`)).length
-  ctx.fillText(`${daysWithMood} days with a mood · My Diary`, pad, pad + 52)
+  ctx.fillText(`${daysWithMood} days with a mood · Daybook`, pad, pad + 52)
 
   const gridTop = pad + headerH
   const monthNames = [
