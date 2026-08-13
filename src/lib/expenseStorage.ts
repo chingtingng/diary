@@ -1,5 +1,5 @@
 import type { Expense, ExpenseInput, ExpensePatch, ExpenseRow } from '../types/expense'
-import { rowToExpense } from '../types/expense'
+import { normalizeCategory, rowToExpense } from '../types/expense'
 import { getStorageMode } from './storage'
 import { supabase } from './supabase'
 
@@ -9,7 +9,10 @@ function readLocalExpenses(): Expense[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as Expense[]
+    return (JSON.parse(raw) as Expense[]).map((expense) => ({
+      ...expense,
+      category: normalizeCategory(expense.category),
+    }))
   } catch {
     return []
   }

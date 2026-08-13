@@ -2,7 +2,7 @@ export const EXPENSE_CATEGORIES = [
   { id: 'food', label: 'Food' },
   { id: 'transport', label: 'Transport' },
   { id: 'travel', label: 'Travel' },
-  { id: 'home', label: 'Home' },
+  { id: 'hobbies', label: 'Hobbies' },
   { id: 'shopping', label: 'Shopping' },
   { id: 'health', label: 'Health' },
   { id: 'fun', label: 'Fun' },
@@ -10,6 +10,14 @@ export const EXPENSE_CATEGORIES = [
 ] as const
 
 export type ExpenseCategoryId = (typeof EXPENSE_CATEGORIES)[number]['id']
+
+const CATEGORY_IDS = new Set<string>(EXPENSE_CATEGORIES.map((category) => category.id))
+
+export function normalizeCategory(id: string): ExpenseCategoryId {
+  if (id === 'home') return 'other'
+  if (CATEGORY_IDS.has(id)) return id as ExpenseCategoryId
+  return 'other'
+}
 
 export interface Expense {
   id: string
@@ -26,7 +34,7 @@ export interface ExpenseRow {
   user_id: string
   amount: number
   note: string
-  category: ExpenseCategoryId
+  category: string
   spent_at: string
   created_at: string
   updated_at: string
@@ -46,7 +54,7 @@ export function rowToExpense(row: ExpenseRow): Expense {
     id: row.id,
     amount: Number(row.amount),
     note: row.note ?? '',
-    category: row.category,
+    category: normalizeCategory(row.category),
     spentAt: row.spent_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

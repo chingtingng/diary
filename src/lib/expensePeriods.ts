@@ -344,7 +344,7 @@ export const CATEGORY_COLORS: Record<ExpenseCategoryId, string> = {
   food: '#2f6f8f',
   transport: '#4a8fa8',
   travel: '#3d7a6e',
-  home: '#5b7d9a',
+  hobbies: '#7a6b9a',
   shopping: '#6d8b9c',
   health: '#3f8f6e',
   fun: '#b2654d',
