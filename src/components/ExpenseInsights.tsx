@@ -49,7 +49,7 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
   return (
     <div className="expenses-view insights-view">
       <div className="insights-header">
-        <button type="button" className="insights-close" onClick={onClose} aria-label="Close insights">
+        <button type="button" className="insights-close" data-haptic="light" onClick={onClose} aria-label="Close insights">
           ✕
         </button>
         <h2 className="insights-title">Insights</h2>
@@ -76,6 +76,7 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
           <div className="calendar-nav expenses-period-nav">
             <button
               type="button"
+              data-haptic="select"
               onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, -1))}
               aria-label={`Previous ${period}`}
             >
@@ -84,6 +85,7 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
             <button
               type="button"
               className={`today-btn${current ? ' current' : ''}`}
+              data-haptic="select"
               onClick={() => setAnchor(new Date())}
               disabled={current}
             >
@@ -91,6 +93,7 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
             </button>
             <button
               type="button"
+              data-haptic="select"
               onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, 1))}
               aria-label={`Next ${period}`}
             >

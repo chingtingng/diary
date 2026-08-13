@@ -30,7 +30,7 @@ export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryLi
 
   return (
     <aside className="entry-list">
-      <button type="button" className="new-entry-btn" onClick={onNewEntry}>
+      <button type="button" className="new-entry-btn" data-haptic="light" onClick={onNewEntry}>
         <span className="new-entry-icon">+</span>
         New page
       </button>
@@ -46,6 +46,7 @@ export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryLi
                 <button
                   type="button"
                   className={`entry-item ${selectedId === entry.id ? 'selected' : ''}`}
+                  data-haptic="select"
                   onClick={() => onSelect(entry.id)}
                   style={
                     mood

@@ -50,6 +50,7 @@ export function MenuSelect<T extends string>({
       <button
         type="button"
         className={`menu-select-trigger ${open ? 'open' : ''}`}
+        data-haptic="select"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -84,6 +85,7 @@ export function MenuSelect<T extends string>({
                 <button
                   type="button"
                   className={`menu-select-option ${active ? 'active' : ''}`}
+                  data-haptic="select"
                   onClick={() => {
                     onChange(option.id)
                     setOpen(false)

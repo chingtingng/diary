@@ -74,7 +74,7 @@ export function AuthForm({ onSignIn, onSignUp }: AuthFormProps) {
 
           {error && <p className="auth-error">{error}</p>}
 
-          <button type="submit" className="auth-submit" disabled={loading}>
+          <button type="submit" className="auth-submit" data-haptic="success" disabled={loading}>
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
