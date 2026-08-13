@@ -21,6 +21,7 @@ import {
 } from '../types/expense'
 import { DateTimePicker } from './DateTimePicker'
 import { ExpenseDetail } from './ExpenseDetail'
+import { MenuSelect } from './MenuSelect'
 import { PeriodSelect } from './PeriodSelect'
 
 interface ExpenseTrackerProps {
@@ -231,19 +232,13 @@ export function ExpenseTracker({
 
           <DateTimePicker value={spentAt} onChange={setSpentAt} />
 
-          <label>
-            Category
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as ExpenseCategoryId)}
-            >
-              {EXPENSE_CATEGORIES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <MenuSelect
+            label="Category"
+            variant="field"
+            value={category}
+            options={EXPENSE_CATEGORIES}
+            onChange={setCategory}
+          />
 
           <label>
             Note

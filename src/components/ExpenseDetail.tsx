@@ -7,6 +7,7 @@ import {
   type ExpensePatch,
 } from '../types/expense'
 import { DateTimePicker } from './DateTimePicker'
+import { MenuSelect } from './MenuSelect'
 
 interface ExpenseDetailProps {
   expense: Expense
@@ -128,22 +129,16 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
           }}
         />
 
-        <label>
-          Category
-          <select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value as ExpenseCategoryId)
-              setSaved(false)
-            }}
-          >
-            {EXPENSE_CATEGORIES.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <MenuSelect
+          label="Category"
+          variant="field"
+          value={category}
+          options={EXPENSE_CATEGORIES}
+          onChange={(next) => {
+            setCategory(next)
+            setSaved(false)
+          }}
+        />
 
         <label>
           Note

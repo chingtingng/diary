@@ -347,15 +347,31 @@ button {
   justify-content: flex-end;
 }
 
-.period-select {
+.menu-select {
   position: relative;
   display: flex;
+}
+
+.menu-select-compact {
   justify-content: flex-end;
 }
 
-.period-select-trigger {
+.menu-select-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.menu-select-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.menu-select-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
   padding: 8px 12px;
   border: 1px solid transparent;
@@ -365,31 +381,43 @@ button {
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 
-.period-select-trigger:hover,
-.period-select-trigger.open {
+.menu-select-field .menu-select-trigger {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 14px;
+  border-color: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.menu-select-trigger:hover,
+.menu-select-trigger.open {
   background: color-mix(in srgb, var(--accent-soft) 72%, white);
   border-color: color-mix(in srgb, var(--accent) 18%, transparent);
   transform: translateY(-1px);
 }
 
-.period-select-value {
+.menu-select-value {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink);
   line-height: 1.2;
 }
 
-.period-select-chevron {
+.menu-select-field .menu-select-value {
+  font-size: 1rem;
+}
+
+.menu-select-chevron {
   display: block;
+  flex-shrink: 0;
   color: var(--accent);
   transition: transform 0.15s;
 }
 
-.period-select-trigger.open .period-select-chevron {
+.menu-select-trigger.open .menu-select-chevron {
   transform: rotate(180deg);
 }
 
-.period-select-menu {
+.menu-select-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -404,7 +432,13 @@ button {
   box-shadow: var(--shadow);
 }
 
-.period-select-option {
+.menu-select-field .menu-select-menu {
+  left: 0;
+  right: 0;
+  min-width: 0;
+}
+
+.menu-select-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -419,17 +453,17 @@ button {
   transition: background 0.12s, color 0.12s;
 }
 
-.period-select-option:hover {
+.menu-select-option:hover {
   background: var(--mist);
   color: var(--ink);
 }
 
-.period-select-option.active {
+.menu-select-option.active {
   background: var(--accent-soft);
   color: var(--ink);
 }
 
-.period-select-check {
+.menu-select-check {
   flex-shrink: 0;
   color: var(--accent);
 }
@@ -487,16 +521,17 @@ button {
   gap: 8px;
   width: 100%;
   padding: 14px 16px;
-  background: var(--ink);
+  background: var(--accent);
   color: white;
   border-radius: 999px;
   font-weight: 600;
   font-size: 0.9375rem;
-  transition: transform 0.15s, opacity 0.15s;
+  transition: transform 0.15s, background 0.15s;
 }
 
 .expense-add-toggle:hover {
   transform: translateY(-1px);
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
 }
 
 .expense-form-heading {
@@ -779,15 +814,15 @@ button {
 .expense-submit {
   margin-top: 2px;
   padding: 12px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent);
+  color: white;
   border-radius: 999px;
   font-weight: 600;
   transition: background 0.15s, transform 0.15s;
 }
 
 .expense-submit:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent) 12%);
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
   transform: translateY(-1px);
 }
 
@@ -1114,17 +1149,18 @@ button {
   gap: 8px;
   margin: 16px;
   padding: 14px 16px;
-  background: var(--ink);
+  background: var(--accent);
   color: white;
   border-radius: 999px;
   font-weight: 600;
   font-size: 0.9375rem;
-  transition: transform 0.15s, opacity 0.15s;
+  transition: transform 0.15s, background 0.15s;
   flex-shrink: 0;
 }
 
 .new-entry-btn:hover {
   transform: translateY(-1px);
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
 }
 
 .new-entry-icon {
@@ -1750,10 +1786,16 @@ button.year-board-cell:hover {
 
 .auth-submit {
   padding: 13px;
-  background: var(--ink);
+  background: var(--accent);
   color: white;
   border-radius: 999px;
   font-weight: 600;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+  transform: translateY(-1px);
 }
 
 .auth-submit:disabled {
@@ -1837,7 +1879,7 @@ button.year-board-cell:hover {
     width: auto;
   }
 
-  .period-select-trigger {
+  .menu-select-compact .menu-select-trigger {
     padding: 7px 11px;
   }
 
