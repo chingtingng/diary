@@ -666,7 +666,7 @@ button {
 .expense-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .expense-form-row {
@@ -675,17 +675,21 @@ button {
   gap: 12px;
 }
 
+.expense-form > .eyebrow {
+  margin-bottom: -2px;
+}
+
 .expense-form label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   font-size: 0.8125rem;
   font-weight: 600;
 }
 
 .expense-form input,
 .expense-form select {
-  padding: 12px 14px;
+  padding: 11px 13px;
   border: 1px solid var(--line);
   border-radius: 14px;
   font-size: 1rem;
@@ -707,11 +711,18 @@ button {
 }
 
 .expense-submit {
-  padding: 13px;
-  background: var(--ink);
-  color: white;
+  margin-top: 2px;
+  padding: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
   border-radius: 999px;
   font-weight: 600;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.expense-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent) 12%);
+  transform: translateY(-1px);
 }
 
 .expense-submit:disabled {
@@ -783,18 +794,26 @@ button {
   line-height: 1.4;
 }
 
+.expense-detail {
+  gap: 14px;
+}
+
 .expense-detail-summary {
   text-align: center;
-  padding-bottom: 4px;
+  padding: 2px 0 12px;
   border-bottom: 1px solid var(--line);
 }
 
 .expense-detail-amount {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 600;
   letter-spacing: -0.03em;
+}
+
+.expense-detail-summary .expenses-subtitle {
+  margin-top: 2px;
 }
 
 .expense-form-saved {
@@ -804,9 +823,21 @@ button {
   color: var(--accent);
 }
 
+.expense-detail .expense-form {
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.expense-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -2px;
+}
+
 .expense-detail-delete {
   width: 100%;
-  padding: 13px;
+  padding: 12px;
   border-radius: 999px;
   font-weight: 600;
   color: var(--danger);
@@ -828,6 +859,7 @@ button {
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 600;
+  color: var(--ink);
 }
 
 .datetime-fields {
@@ -841,7 +873,7 @@ button {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgb(255 255 255 / 80%);
