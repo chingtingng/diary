@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useAllowFormScroll } from '../hooks/useAllowFormScroll'
 import {
   EXPENSE_CATEGORIES,
   getCategoryLabel,
@@ -32,6 +33,8 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  useAllowFormScroll(formRef)
 
   useEffect(() => {
     setAmount(String(expense.amount))
@@ -104,7 +107,7 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
         <span className="expense-detail-top-spacer" aria-hidden />
       </div>
 
-      <form className="expense-form" onSubmit={handleSave}>
+      <form ref={formRef} className="expense-form" onSubmit={handleSave}>
         <label>
           Amount
           <input

@@ -11,6 +11,7 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns'
+import { haptic } from '../lib/haptics'
 
 interface DateTimePickerProps {
   value: Date
@@ -20,6 +21,7 @@ interface DateTimePickerProps {
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 const WEEK_OPTIONS = { weekStartsOn: 1 as const }
+const WHEEL_ITEM_HEIGHT = 40
 
 function clampHour12(hour24: number): { hour12: number; meridiem: 'AM' | 'PM' } {
   const meridiem = hour24 >= 12 ? 'PM' : 'AM'
@@ -57,36 +59,93 @@ function TimeColumn<T extends string | number>({
   options,
   value,
   onChange,
-  fill = false,
 }: {
   label: string
   options: TimeColumnOption<T>[]
   value: T
   onChange: (next: T) => void
-  fill?: boolean
 }) {
   const listRef = useRef<HTMLDivElement>(null)
-  const selectedRef = useRef<HTMLButtonElement>(null)
   const labelId = useId()
+  const userScrolling = useRef(false)
+  const snapping = useRef(false)
+  const settleTimer = useRef(0)
+  const valueRef = useRef(value)
+  const onChangeRef = useRef(onChange)
+  valueRef.current = value
+  onChangeRef.current = onChange
+
+  const indexOf = (id: T) => {
+    const index = options.findIndex((option) => option.id === id)
+    return index < 0 ? 0 : index
+  }
+
+  const scrollToIndex = (index: number, behavior: ScrollBehavior = 'instant') => {
+    const list = listRef.current
+    if (!list) return
+    const top = index * WHEEL_ITEM_HEIGHT
+    if (Math.abs(list.scrollTop - top) < 1) return
+    snapping.current = true
+    list.scrollTo({ top, behavior })
+    window.requestAnimationFrame(() => {
+      snapping.current = false
+    })
+  }
 
   useLayoutEffect(() => {
-    const list = listRef.current
-    const selected = selectedRef.current
-    if (!list || !selected || fill) return
-    // getBoundingClientRect accounts for list padding; offsetTop often
-    // resolves against a farther offsetParent and leaves the value off-center.
-    const listRect = list.getBoundingClientRect()
-    const selectedRect = selected.getBoundingClientRect()
-    const delta =
-      selectedRect.top +
-      selectedRect.height / 2 -
-      (listRect.top + listRect.height / 2)
-    list.scrollTop += delta
-  }, [value, fill])
+    if (userScrolling.current) return
+    const index = options.findIndex((option) => option.id === value)
+    scrollToIndex(index < 0 ? 0 : index)
+  }, [value, options])
+
+  useEffect(() => {
+    const el = listRef.current
+    if (!el) return
+
+    const commitFromScroll = () => {
+      const index = Math.min(
+        Math.max(Math.round(el.scrollTop / WHEEL_ITEM_HEIGHT), 0),
+        options.length - 1
+      )
+      const next = options[index]
+      if (!next) return
+      scrollToIndex(index)
+      if (next.id !== valueRef.current) {
+        userScrolling.current = true
+        onChangeRef.current(next.id)
+        haptic('select')
+        window.requestAnimationFrame(() => {
+          userScrolling.current = false
+        })
+      } else {
+        userScrolling.current = false
+      }
+    }
+
+    const onScroll = () => {
+      if (snapping.current) return
+      userScrolling.current = true
+      window.clearTimeout(settleTimer.current)
+      settleTimer.current = window.setTimeout(commitFromScroll, 80)
+    }
+
+    const onScrollEnd = () => {
+      if (snapping.current) return
+      window.clearTimeout(settleTimer.current)
+      commitFromScroll()
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    el.addEventListener('scrollend', onScrollEnd)
+    return () => {
+      window.clearTimeout(settleTimer.current)
+      el.removeEventListener('scroll', onScroll)
+      el.removeEventListener('scrollend', onScrollEnd)
+    }
+  }, [options])
 
   const move = (delta: number) => {
-    const index = options.findIndex((option) => option.id === value)
-    const next = options[Math.min(Math.max(index + delta, 0), options.length - 1)]
+    const next = options[Math.min(Math.max(indexOf(value) + delta, 0), options.length - 1)]
     if (next && next.id !== value) onChange(next.id)
   }
 
@@ -95,39 +154,43 @@ function TimeColumn<T extends string | number>({
       <span className="datetime-time-column-label" id={labelId}>
         {label}
       </span>
-      <div
-        ref={listRef}
-        className={`datetime-time-list${fill ? ' fill' : ''}`}
-        role="listbox"
-        aria-labelledby={labelId}
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown') {
-            event.preventDefault()
-            move(1)
-          } else if (event.key === 'ArrowUp') {
-            event.preventDefault()
-            move(-1)
-          }
-        }}
-      >
-        {options.map((option) => {
-          const active = option.id === value
-          return (
-            <button
-              key={String(option.id)}
-              type="button"
-              role="option"
-              aria-selected={active}
-              ref={active ? selectedRef : undefined}
-              className={`datetime-time-option${active ? ' active' : ''}`}
-              data-haptic="select"
-              onClick={() => onChange(option.id)}
-            >
-              {option.label}
-            </button>
-          )
-        })}
+      <div className="datetime-time-wheel">
+        <div className="datetime-time-wheel-highlight" aria-hidden />
+        <div
+          ref={listRef}
+          className="datetime-time-list"
+          role="listbox"
+          aria-labelledby={labelId}
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              move(1)
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault()
+              move(-1)
+            }
+          }}
+        >
+          {options.map((option) => {
+            const active = option.id === value
+            return (
+              <div
+                key={String(option.id)}
+                role="option"
+                aria-selected={active}
+                className={`datetime-time-option${active ? ' active' : ''}`}
+                onClick={() => {
+                  if (option.id === value) return
+                  onChange(option.id)
+                  haptic('select')
+                }}
+              >
+                {option.label}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -280,7 +343,6 @@ export function DateTimePicker({ value, onChange, label = 'When' }: DateTimePick
               options={PERIOD_OPTIONS}
               value={meridiem}
               onChange={(next) => setTimePart(hour12, minute, next)}
-              fill
             />
           </div>
           <div className="datetime-time-presets" role="group" aria-label="Quick times">
