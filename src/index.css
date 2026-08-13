@@ -1130,26 +1130,91 @@ button {
 
 .datetime-time-columns {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: 1fr 1fr minmax(4.5rem, 0.8fr);
+  gap: 8px;
+  align-items: stretch;
 }
 
-.datetime-time-columns label {
+.datetime-time-column {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+}
+
+.datetime-time-column-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--ink-soft);
+  text-align: center;
 }
 
-.datetime-time-columns select {
-  padding: 8px 12px;
+.datetime-time-list {
+  height: 168px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgb(255 255 255 / 80%);
-  color: var(--ink);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 70%);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink) 20%, transparent) transparent;
+}
+
+.datetime-time-list:not(.fill) {
+  padding-block: 56px;
+}
+
+.datetime-time-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.datetime-time-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 999px;
+}
+
+.datetime-time-list.fill {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.datetime-time-list.fill .datetime-time-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.datetime-time-option {
+  display: block;
+  width: 100%;
+  padding: 8px 6px;
+  border-radius: 10px;
+  font-size: var(--font-size-input);
   font-weight: 600;
+  color: var(--ink-soft);
+  text-align: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.datetime-time-option:hover {
+  background: var(--mist);
+  color: var(--ink);
+}
+
+.datetime-time-option.active {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.datetime-time-option:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -2px;
 }
 
 .datetime-time-presets {
@@ -1172,6 +1237,16 @@ button {
 .datetime-time-presets button:hover {
   color: var(--ink);
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+@media (min-width: 640px) {
+  .datetime-time-list {
+    height: 204px;
+  }
+
+  .datetime-time-list:not(.fill) {
+    padding-block: 72px;
+  }
 }
 
 /* Entry list */
