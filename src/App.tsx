@@ -32,6 +32,7 @@ function App() {
     expenses,
     loading: expensesLoading,
     addExpense,
+    saveExpense,
     removeExpense,
   } = useExpenses(user?.id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -238,6 +239,9 @@ function App() {
                 expenses={expenses}
                 loading={expensesLoading}
                 onAdd={addExpense}
+                onSave={async (id, patch) => {
+                  await saveExpense(id, patch)
+                }}
                 onDelete={removeExpense}
               />
             )}

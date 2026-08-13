@@ -727,13 +727,28 @@ button {
   gap: 8px;
 }
 
-.expense-item {
+.expense-item,
+.expense-item-button {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
   padding: 14px 0;
   border-top: 1px solid var(--line);
+  text-align: left;
+  background: transparent;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.expense-item-button:hover {
+  transform: translateY(-1px);
+}
+
+.expense-item-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: 10px;
 }
 
 .expense-item-main {
@@ -748,6 +763,7 @@ button {
   font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .expense-item-main .expense-item-note {
@@ -767,14 +783,213 @@ button {
   line-height: 1.4;
 }
 
-.expense-delete {
-  flex-shrink: 0;
-  padding: 6px 10px;
+.expense-detail-summary {
+  text-align: center;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.expense-detail-amount {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.expense-form-saved {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.expense-detail-delete {
+  width: 100%;
+  padding: 13px;
   border-radius: 999px;
-  font-size: 0.75rem;
   font-weight: 600;
   color: var(--danger);
   background: #f8e3e3;
+}
+
+.expense-detail-delete:disabled {
+  opacity: 0.6;
+}
+
+.datetime-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.datetime-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.datetime-fields {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+}
+
+.datetime-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 80%);
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.datetime-chip:hover,
+.datetime-chip.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  background: var(--paper-solid);
+}
+
+.datetime-chip-kicker {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.datetime-chip-value {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.datetime-popover {
+  margin-top: 2px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper-solid);
+  box-shadow: var(--shadow);
+  z-index: 5;
+}
+
+.datetime-cal-nav {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.datetime-cal-nav p {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.datetime-cal-nav button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgb(255 255 255 / 75%);
+  font-weight: 600;
+}
+
+.datetime-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.datetime-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.datetime-day {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: rgb(255 255 255 / 55%);
+}
+
+.datetime-day.outside {
+  opacity: 0.35;
+}
+
+.datetime-day.today {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.datetime-day.selected {
+  background: var(--ink);
+  color: white;
+}
+
+.datetime-time-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.datetime-time-columns label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.datetime-time-columns select {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 80%);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.datetime-time-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.datetime-time-presets button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgb(255 255 255 / 75%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.datetime-time-presets button:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* Entry list */
@@ -1497,7 +1712,8 @@ button.year-board-cell:hover {
 }
 
 @media (max-width: 520px) {
-  .expense-form-row {
+  .expense-form-row,
+  .datetime-fields {
     grid-template-columns: 1fr;
   }
 

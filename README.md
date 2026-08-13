@@ -45,6 +45,8 @@ supabase/migrations/003_create_expenses.sql
 
 These create the `entries` and `expenses` tables with row-level security so each user only sees their own data.
 
+**Expenses date + time:** `spent_at` is already a `timestamptz`, so no extra migration is needed to store time of day. The app writes a full timestamp when you set date and time in the UI.
+
 ### 3. Configure environment variables
 
 Copy `.env.example` to `.env` and fill in your project credentials (found in **Project Settings → API**):
