@@ -32,6 +32,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --font-display: 'Glacial Indifference', 'Poppins', 'Montserrat', sans-serif;
   --font-ui: 'Poppins', 'Glacial Indifference', 'Montserrat', sans-serif;
+  --font-size-input: 0.875rem;
   font-family: var(--font-ui);
   line-height: 1.5;
   color: var(--ink);
@@ -63,9 +64,16 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
   font-family: var(--font-ui);
+}
+
+input,
+select,
+textarea {
+  font-size: var(--font-size-input);
 }
 
 button {
@@ -422,14 +430,10 @@ button {
 }
 
 .menu-select-value {
-  font-size: 0.875rem;
+  font-size: var(--font-size-input);
   font-weight: 600;
   color: var(--ink);
   line-height: 1.2;
-}
-
-.menu-select-field .menu-select-value {
-  font-size: 1rem;
 }
 
 .menu-select-chevron {
@@ -472,7 +476,7 @@ button {
   width: 100%;
   padding: 10px 12px;
   border-radius: 12px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-input);
   font-weight: 600;
   color: var(--ink-soft);
   text-align: left;
@@ -822,7 +826,6 @@ button {
   padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  font-size: 1rem;
   background: rgb(255 255 255 / 80%);
   color: var(--ink);
 }
@@ -1044,8 +1047,8 @@ button {
 }
 
 .datetime-chip-value {
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-input);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -1815,7 +1818,6 @@ button.year-board-cell:hover {
   padding: 10px 13px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  font-size: 1rem;
   background: rgb(255 255 255 / 80%);
 }
 
