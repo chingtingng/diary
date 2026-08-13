@@ -71,33 +71,33 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
             options={INSIGHT_PERIODS}
             onChange={handlePeriodChange}
           />
-          {period !== 'all' && (
-            <div className="calendar-nav">
-              <button
-                type="button"
-                onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, -1))}
-                aria-label={`Previous ${period}`}
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                className="today-btn"
-                onClick={() => setAnchor(new Date())}
-                disabled={current}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, 1))}
-                aria-label={`Next ${period}`}
-              >
-                →
-              </button>
-            </div>
-          )}
         </div>
+        {period !== 'all' && (
+          <div className="calendar-nav expenses-period-nav">
+            <button
+              type="button"
+              onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, -1))}
+              aria-label={`Previous ${period}`}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="today-btn"
+              onClick={() => setAnchor(new Date())}
+              disabled={current}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, 1))}
+              aria-label={`Next ${period}`}
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
 
       {slices.length === 0 ? (

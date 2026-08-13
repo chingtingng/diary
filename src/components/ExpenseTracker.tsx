@@ -157,33 +157,33 @@ export function ExpenseTracker({
             options={EXPENSE_FILTERS}
             onChange={handleFilterChange}
           />
-          {filter !== 'all' && (
-            <div className="calendar-nav">
-              <button
-                type="button"
-                onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
-                aria-label={`Previous ${filter}`}
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                className="today-btn"
-                onClick={() => setAnchor(new Date())}
-                disabled={current}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
-                aria-label={`Next ${filter}`}
-              >
-                →
-              </button>
-            </div>
-          )}
         </div>
+        {filter !== 'all' && (
+          <div className="calendar-nav expenses-period-nav">
+            <button
+              type="button"
+              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
+              aria-label={`Previous ${filter}`}
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              className="today-btn"
+              onClick={() => setAnchor(new Date())}
+              disabled={current}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
+              aria-label={`Next ${filter}`}
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="expenses-total">

@@ -51,28 +51,25 @@ export function PeriodSelect({
         aria-expanded={open}
         aria-controls={listId}
         aria-label={`${label}: ${selected}`}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen((current) => !current)}
       >
-        <span className="period-select-kicker">{label}</span>
-        <span className="period-select-value-row">
-          <span className="period-select-value">{selected}</span>
-          <svg
-            className="period-select-chevron"
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            aria-hidden
-          >
-            <path
-              d="M2.5 4.25 6 7.75l3.5-3.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
+        <span className="period-select-value">{selected}</span>
+        <svg
+          className="period-select-chevron"
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          aria-hidden
+        >
+          <path
+            d="M2.5 4.25 6 7.75l3.5-3.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
 
       {open && (
