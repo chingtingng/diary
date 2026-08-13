@@ -90,6 +90,8 @@ export function ExpenseSwipeRow({
       if (axis.current == null) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) < AXIS_LOCK) return
         axis.current = Math.abs(dx) > Math.abs(dy) * 1.1 ? 'x' : 'y'
+        // Any drag past tap slop is a scroll/swipe, not a tap into the expense.
+        suppressClick.current = true
         if (axis.current === 'y' && mouseId.current != null) {
           if (root.hasPointerCapture(mouseId.current)) root.releasePointerCapture(mouseId.current)
           mouseId.current = null
@@ -99,7 +101,6 @@ export function ExpenseSwipeRow({
 
       event.preventDefault()
       event.stopPropagation()
-      suppressClick.current = true
       const next = startOffset.current + dx
       if (!crossed.current && next <= -OPEN_AT) {
         crossed.current = true
@@ -122,6 +123,8 @@ export function ExpenseSwipeRow({
         const open = offsetRef.current <= -OPEN_AT
         setOffset(open ? -REVEAL : 0, true)
         onRevealedChangeRef.current(open)
+      } else if (suppressClick.current) {
+        event.preventDefault()
       }
       axis.current = null
     }

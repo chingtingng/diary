@@ -152,6 +152,7 @@ export function ExpenseTracker({
   const periodHostRef = useRef<HTMLElement>(null)
   const periodPaneRef = useRef<HTMLDivElement>(null)
   useAllowFormScroll(addFormRef, showAddForm)
+  useAllowFormScroll(periodHostRef, !selectedId)
 
   const shiftAnchor = useCallback(
     (direction: -1 | 1) => {
@@ -164,7 +165,7 @@ export function ExpenseTracker({
     [period]
   )
   usePeriodSwipe(periodHostRef, periodPaneRef, {
-    enabled: !showAddForm && !pickerOpen,
+    enabled: !selectedId && !showAddForm && !pickerOpen,
     onShift: shiftAnchor,
   })
 
