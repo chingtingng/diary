@@ -21,6 +21,7 @@ import {
 } from '../types/expense'
 import { DateTimePicker } from './DateTimePicker'
 import { ExpenseDetail } from './ExpenseDetail'
+import { PeriodSelect } from './PeriodSelect'
 
 interface ExpenseTrackerProps {
   expenses: Expense[]
@@ -139,7 +140,7 @@ export function ExpenseTracker({
   return (
     <div className="expenses-view">
       <div className="expenses-toolbar">
-        <div>
+        <div className="expenses-toolbar-copy">
           <p className="eyebrow">{periodEyebrow(filter, current)}</p>
           <h2 className="expenses-title">
             {filter === 'all' ? 'My expenses' : formatPeriodLabel(anchor, filter as ExpensePeriod)}
@@ -150,47 +151,39 @@ export function ExpenseTracker({
               : `${visibleExpenses.length} ${visibleExpenses.length === 1 ? 'entry' : 'entries'}`}
           </p>
         </div>
-        {filter !== 'all' && (
-          <div className="calendar-nav">
-            <button
-              type="button"
-              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
-              aria-label={`Previous ${filter}`}
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              className="today-btn"
-              onClick={() => setAnchor(new Date())}
-              disabled={current}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
-              aria-label={`Next ${filter}`}
-            >
-              →
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="segmented expense-period-tabs" role="tablist" aria-label="Expense filter">
-        {EXPENSE_FILTERS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={filter === item.id}
-            className={filter === item.id ? 'active' : ''}
-            onClick={() => handleFilterChange(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+        <div className="expenses-toolbar-controls">
+          <PeriodSelect
+            value={filter}
+            options={EXPENSE_FILTERS}
+            onChange={handleFilterChange}
+          />
+          {filter !== 'all' && (
+            <div className="calendar-nav">
+              <button
+                type="button"
+                onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, -1))}
+                aria-label={`Previous ${filter}`}
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                className="today-btn"
+                onClick={() => setAnchor(new Date())}
+                disabled={current}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnchor((value) => shiftPeriod(value, filter as ExpensePeriod, 1))}
+                aria-label={`Next ${filter}`}
+              >
+                →
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="expenses-total">

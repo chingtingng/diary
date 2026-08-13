@@ -12,6 +12,7 @@ import {
 } from '../lib/expensePeriods'
 import type { Expense } from '../types/expense'
 import { CategoryPieChart } from './CategoryPieChart'
+import { PeriodSelect } from './PeriodSelect'
 
 interface ExpenseInsightsProps {
   expenses: Expense[]
@@ -55,50 +56,49 @@ export function ExpenseInsights({ expenses, onClose }: ExpenseInsightsProps) {
         <span className="insights-header-spacer" aria-hidden />
       </div>
 
-      <div className="segmented expense-period-tabs" role="tablist" aria-label="Insights period">
-        {INSIGHT_PERIODS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={period === item.id}
-            className={period === item.id ? 'active' : ''}
-            onClick={() => handlePeriodChange(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="insights-toolbar">
+        <div className="insights-period-copy">
+          <p className="eyebrow">{periodEyebrow(period, current)}</p>
+          <p className="insights-period-title">
+            {period === 'all'
+              ? 'All spending'
+              : formatPeriodLabel(anchor, period as ExpensePeriod)}
+          </p>
+        </div>
+        <div className="expenses-toolbar-controls">
+          <PeriodSelect
+            value={period}
+            options={INSIGHT_PERIODS}
+            onChange={handlePeriodChange}
+          />
+          {period !== 'all' && (
+            <div className="calendar-nav">
+              <button
+                type="button"
+                onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, -1))}
+                aria-label={`Previous ${period}`}
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                className="today-btn"
+                onClick={() => setAnchor(new Date())}
+                disabled={current}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, 1))}
+                aria-label={`Next ${period}`}
+              >
+                →
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-
-      {period !== 'all' && (
-        <div className="insights-period-nav">
-          <button
-            type="button"
-            onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, -1))}
-            aria-label={`Previous ${period}`}
-          >
-            ←
-          </button>
-          <div className="insights-period-label">
-            <p className="eyebrow">{periodEyebrow(period, current)}</p>
-            <p>{formatPeriodLabel(anchor, period as ExpensePeriod)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAnchor((value) => shiftPeriod(value, period as ExpensePeriod, 1))}
-            aria-label={`Next ${period}`}
-          >
-            →
-          </button>
-        </div>
-      )}
-
-      {period === 'all' && (
-        <div className="insights-period-static">
-          <p className="eyebrow">Lifetime</p>
-          <p className="insights-all-label">All spending</p>
-        </div>
-      )}
 
       {slices.length === 0 ? (
         <p className="empty-list">No spending in this period yet.</p>
