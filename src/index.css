@@ -756,6 +756,7 @@ button {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  color: var(--ink);
 }
 
 .expense-pie-legend {
