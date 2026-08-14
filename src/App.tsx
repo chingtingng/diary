@@ -374,11 +374,7 @@ function App() {
           </div>
         ) : (
           <div className="journal-shell">
-            <nav
-              className="journal-tabs expense-period-tabs"
-              role="tablist"
-              aria-label="Journal"
-            >
+            <nav className="journal-tabs" role="tablist" aria-label="Journal">
               {JOURNAL_TABS.map((tab) => (
                 <a
                   key={tab.id}
