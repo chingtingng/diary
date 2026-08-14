@@ -7,7 +7,14 @@ const EXPENSE_FILTER_KEY = 'daybook-expense-filter'
 export function readLastView(): AppView | null {
   try {
     const value = localStorage.getItem(VIEW_KEY)
-    if (value === 'journal' || value === 'calendar' || value === 'expenses') return value
+    if (
+      value === 'journal' ||
+      value === 'calendar' ||
+      value === 'expenses' ||
+      value === 'insurance'
+    ) {
+      return value
+    }
   } catch {
     /* ignore */
   }

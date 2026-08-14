@@ -5,27 +5,31 @@ import { EntryList } from './components/EntryList'
 import { ExpenseInsights } from './components/ExpenseInsights'
 import { ExpenseTracker } from './components/ExpenseTracker'
 import { Header } from './components/Header'
+import { InsuranceTracker } from './components/InsuranceTracker'
 import { MoodCalendar } from './components/MoodCalendar'
 import { exportAndDownload } from './lib/export'
 import { exportExpensesAndDownload } from './lib/expenseExport'
 import {
+  defaultLocation,
   locationToPath,
   parsePath,
   type AppLocation,
   type AppView,
+  type InsuranceScreen,
 } from './lib/navigation'
 import { readLastView, writeLastView } from './lib/prefs'
 import { getEntry } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useEntries } from './hooks/useEntries'
 import { useExpenses } from './hooks/useExpenses'
+import { useInsurance } from './hooks/useInsurance'
 import { isBlankEntry, type Entry, type EntryPatch } from './types/entry'
 import './index.css'
 
 function initialLocation(): AppLocation {
   const path = window.location.pathname
   if (path === '/' || path === '') {
-    return { view: readLastView() ?? 'journal', expenseScreen: 'list' }
+    return defaultLocation(readLastView() ?? 'journal')
   }
   return parsePath(path)
 }
@@ -50,12 +54,24 @@ function App() {
     saveExpense,
     removeExpense,
   } = useExpenses(user?.id)
+  const {
+    policies,
+    documents,
+    loading: insuranceLoading,
+    addPolicy,
+    removePolicy,
+    addDocument,
+    removeDocument,
+    openDocument,
+  } = useInsurance(user?.id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
   const [location, setLocation] = useState<AppLocation>(initialLocation)
+  const [uploadRequestKey, setUploadRequestKey] = useState(0)
   const view = location.view
   const expenseScreen = location.expenseScreen
+  const insuranceScreen = location.insuranceScreen
   const draftRef = useRef<EntryDraft | null>(null)
   const selectedIdRef = useRef<string | null>(null)
   const discardingIdsRef = useRef(new Set<string>())
@@ -149,7 +165,7 @@ function App() {
     await discardBlankEntry(selectedIdRef.current)
     const entry = await addEntry()
     selectEntry(entry.id)
-    goTo({ view: 'journal', expenseScreen: 'list' })
+    goTo(defaultLocation('journal'))
     setShowList(false)
   }, [addEntry, discardBlankEntry, goTo, selectEntry])
 
@@ -159,7 +175,7 @@ function App() {
         await discardBlankEntry(selectedIdRef.current)
       }
       selectEntry(id)
-      goTo({ view: 'journal', expenseScreen: 'list' })
+      goTo(defaultLocation('journal'))
       setShowList(false)
     },
     [discardBlankEntry, goTo, selectEntry]
@@ -171,7 +187,7 @@ function App() {
 
       if (entryId) {
         selectEntry(entryId)
-        goTo({ view: 'journal', expenseScreen: 'list' })
+        goTo(defaultLocation('journal'))
         setShowList(false)
         return
       }
@@ -179,7 +195,7 @@ function App() {
       stamped.setHours(12, 0, 0, 0)
       const entry = await addEntry(stamped.toISOString())
       selectEntry(entry.id)
-      goTo({ view: 'journal', expenseScreen: 'list' })
+      goTo(defaultLocation('journal'))
       setShowList(false)
     },
     [addEntry, discardBlankEntry, goTo, selectEntry]
@@ -211,19 +227,26 @@ function App() {
 
   const handleViewChange = useCallback(
     async (next: AppView) => {
-      if (next === 'calendar' || next === 'expenses') {
+      if (next !== 'journal') {
         const discarded = await discardBlankEntry(selectedIdRef.current)
         if (discarded) selectEntry(null)
         setShowList(true)
       }
-      goTo({ view: next, expenseScreen: 'list' })
+      goTo(defaultLocation(next))
     },
     [discardBlankEntry, goTo, selectEntry]
   )
 
   const handleOpenInsights = useCallback(() => {
-    goTo({ view: 'expenses', expenseScreen: 'insights' })
+    goTo({ view: 'expenses', expenseScreen: 'insights', insuranceScreen: 'overview' })
   }, [goTo])
+
+  const handleInsuranceScreen = useCallback(
+    (screen: InsuranceScreen) => {
+      goTo({ view: 'insurance', expenseScreen: 'list', insuranceScreen: screen })
+    },
+    [goTo]
+  )
 
   const handleExport = useCallback(() => {
     if (view === 'expenses') {
@@ -235,13 +258,43 @@ function App() {
       return
     }
 
+    if (view === 'insurance') {
+      if (policies.length === 0 && documents.length === 0) {
+        alert('No insurance data to export yet.')
+        return
+      }
+      const lines = [
+        'Daybook — Insurance',
+        '',
+        'Policies',
+        ...policies.map(
+          (p) =>
+            `- ${p.policyName} (${p.insurer || '—'}) · ${p.policyType} · $${p.premium}/${p.premiumFrequency} · renewal ${p.renewalDate ?? '—'} · ${p.status}`
+        ),
+        '',
+        'Documents',
+        ...documents.map(
+          (d) =>
+            `- ${d.fileName} · ${d.insurer || d.policyName || 'unlinked'} · ${d.fileType} · ${d.uploadedAt}`
+        ),
+      ]
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `daybook-insurance-${new Date().toISOString().slice(0, 10)}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+      return
+    }
+
     const exportable = entries.filter((e) => !isBlankEntry(e.content, e.mood))
     if (exportable.length === 0) {
       alert('No entries to export yet.')
       return
     }
     exportAndDownload(exportable)
-  }, [entries, expenses, view])
+  }, [documents, entries, expenses, policies, view])
 
   if (isSupabaseConfigured && authLoading) {
     return (
@@ -260,6 +313,14 @@ function App() {
     <div className="app">
       <Header
         onExport={handleExport}
+        onUpload={
+          view === 'insurance'
+            ? () => {
+                handleInsuranceScreen(insuranceScreen)
+                setUploadRequestKey((key) => key + 1)
+              }
+            : undefined
+        }
         storageMode={storageMode}
         onSignOut={isSupabaseConfigured ? signOut : undefined}
         username={username}
@@ -276,7 +337,9 @@ function App() {
             {expenseScreen === 'insights' ? (
               <ExpenseInsights
                 expenses={expenses}
-                onClose={() => goTo({ view: 'expenses', expenseScreen: 'list' })}
+                onClose={() =>
+                  goTo({ view: 'expenses', expenseScreen: 'list', insuranceScreen: 'overview' })
+                }
               />
             ) : (
               <ExpenseTracker
@@ -289,6 +352,22 @@ function App() {
                 onDelete={removeExpense}
               />
             )}
+          </div>
+        ) : view === 'insurance' ? (
+          <div className="expenses-shell">
+            <InsuranceTracker
+              policies={policies}
+              documents={documents}
+              loading={insuranceLoading}
+              screen={insuranceScreen}
+              onScreenChange={handleInsuranceScreen}
+              onAddPolicy={addPolicy}
+              onDeletePolicy={removePolicy}
+              onUploadDocument={addDocument}
+              onDeleteDocument={removeDocument}
+              onOpenDocument={openDocument}
+              uploadRequestKey={uploadRequestKey}
+            />
           </div>
         ) : view === 'calendar' ? (
           <div className="calendar-view">
