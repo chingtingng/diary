@@ -6,6 +6,7 @@ import { ExpenseInsights } from './components/ExpenseInsights'
 import { ExpenseTracker } from './components/ExpenseTracker'
 import { Header } from './components/Header'
 import { MoodCalendar } from './components/MoodCalendar'
+import { Settings } from './components/Settings'
 import { exportAndDownload } from './lib/export'
 import { exportExpensesAndDownload } from './lib/expenseExport'
 import {
@@ -14,7 +15,15 @@ import {
   type AppLocation,
   type AppView,
 } from './lib/navigation'
-import { readLastView, writeLastView } from './lib/prefs'
+import {
+  firstEnabledView,
+  isViewEnabled,
+  readLastView,
+  readPlugins,
+  writeLastView,
+  writePlugins,
+  type PluginPrefs,
+} from './lib/prefs'
 import { getEntry } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useEntries } from './hooks/useEntries'
@@ -22,12 +31,15 @@ import { useExpenses } from './hooks/useExpenses'
 import { isBlankEntry, type Entry, type EntryPatch } from './types/entry'
 import './index.css'
 
-function initialLocation(): AppLocation {
+function initialLocation(plugins: PluginPrefs): AppLocation {
   const path = window.location.pathname
-  if (path === '/' || path === '') {
-    return { view: readLastView() ?? 'journal', expenseScreen: 'list' }
-  }
-  return parsePath(path)
+  const raw =
+    path === '/' || path === ''
+      ? { view: readLastView() ?? 'journal', expenseScreen: 'list' as const }
+      : parsePath(path)
+
+  if (isViewEnabled(raw.view, plugins)) return raw
+  return { view: firstEnabledView(plugins), expenseScreen: 'list' }
 }
 
 function App() {
@@ -53,7 +65,10 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
   const [showList, setShowList] = useState(true)
-  const [location, setLocation] = useState<AppLocation>(initialLocation)
+  const [plugins, setPlugins] = useState<PluginPrefs>(() => readPlugins())
+  const [location, setLocation] = useState<AppLocation>(() =>
+    initialLocation(readPlugins())
+  )
   const view = location.view
   const expenseScreen = location.expenseScreen
   const draftRef = useRef<EntryDraft | null>(null)
@@ -70,6 +85,17 @@ function App() {
     setLocation(next)
   }, [])
 
+  const handlePluginsChange = useCallback(
+    (next: PluginPrefs) => {
+      writePlugins(next)
+      setPlugins(next)
+      if (!isViewEnabled(location.view, next)) {
+        goTo({ view: firstEnabledView(next), expenseScreen: 'list' }, 'replace')
+      }
+    },
+    [goTo, location.view]
+  )
+
   useEffect(() => {
     const current = locationToPath(location)
     if (window.location.pathname !== current) {
@@ -80,12 +106,17 @@ function App() {
   useEffect(() => {
     const onPopState = () => {
       const next = parsePath(window.location.pathname)
+      const prefs = readPlugins()
+      if (!isViewEnabled(next.view, prefs)) {
+        goTo({ view: firstEnabledView(prefs), expenseScreen: 'list' }, 'replace')
+        return
+      }
       writeLastView(next.view)
       setLocation(next)
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [])
+  }, [goTo])
 
   const selectEntry = useCallback((id: string | null) => {
     selectedIdRef.current = id
@@ -211,18 +242,23 @@ function App() {
 
   const handleViewChange = useCallback(
     async (next: AppView) => {
-      if (next === 'calendar' || next === 'expenses') {
+      if (!isViewEnabled(next, plugins)) return
+      if (next === 'calendar' || next === 'expenses' || next === 'settings') {
         const discarded = await discardBlankEntry(selectedIdRef.current)
         if (discarded) selectEntry(null)
         setShowList(true)
       }
       goTo({ view: next, expenseScreen: 'list' })
     },
-    [discardBlankEntry, goTo, selectEntry]
+    [discardBlankEntry, goTo, plugins, selectEntry]
   )
 
   const handleOpenInsights = useCallback(() => {
     goTo({ view: 'expenses', expenseScreen: 'insights' })
+  }, [goTo])
+
+  const handleOpenSettings = useCallback(() => {
+    goTo({ view: 'settings', expenseScreen: 'list' })
   }, [goTo])
 
   const handleExport = useCallback(() => {
@@ -234,6 +270,8 @@ function App() {
       exportExpensesAndDownload(expenses)
       return
     }
+
+    if (view === 'settings') return
 
     const exportable = entries.filter((e) => !isBlankEntry(e.content, e.mood))
     if (exportable.length === 0) {
@@ -264,14 +302,20 @@ function App() {
         onSignOut={isSupabaseConfigured ? signOut : undefined}
         username={username}
         view={view}
+        plugins={plugins}
         onViewChange={handleViewChange}
+        onOpenSettings={handleOpenSettings}
         onOpenInsights={
-          view === 'expenses' && expenseScreen === 'list' ? handleOpenInsights : undefined
+          plugins.expenses && view === 'expenses' && expenseScreen === 'list'
+            ? handleOpenInsights
+            : undefined
         }
       />
 
       <main className="main">
-        {view === 'expenses' ? (
+        {view === 'settings' ? (
+          <Settings plugins={plugins} onChange={handlePluginsChange} />
+        ) : view === 'expenses' ? (
           <div className="expenses-shell">
             {expenseScreen === 'insights' ? (
               <ExpenseInsights

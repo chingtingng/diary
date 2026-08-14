@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react'
 
-export type AppView = 'journal' | 'calendar' | 'expenses'
+export type AppView = 'journal' | 'calendar' | 'expenses' | 'settings'
 export type ExpenseScreen = 'list' | 'insights' | 'budgets'
 
 export interface AppLocation {
@@ -12,6 +12,7 @@ const VIEW_PATHS: Record<AppView, string> = {
   journal: '/journal',
   calendar: '/calendar',
   expenses: '/expenses',
+  settings: '/settings',
 }
 
 function parseExpenseScreen(segment?: string): ExpenseScreen {
@@ -31,6 +32,7 @@ export function parsePath(pathname: string): AppLocation {
       expenseScreen: parseExpenseScreen(parts[1]),
     }
   }
+  if (head === 'settings') return { view: 'settings', expenseScreen: 'list' }
 
   return { view: 'journal', expenseScreen: 'list' }
 }

@@ -1,5 +1,6 @@
 import { useState, type MouseEvent } from 'react'
 import type { StorageMode } from '../lib/storage'
+import type { PluginPrefs } from '../lib/prefs'
 import { shouldHandleSpaClick, viewHref, type AppView } from '../lib/navigation'
 import { MenuDots } from './MenuDots'
 import { OpenBookMark } from './OpenBookMark'
@@ -12,8 +13,10 @@ interface HeaderProps {
   onSignOut?: () => void
   username?: string
   view: AppView
+  plugins: PluginPrefs
   onViewChange: (view: AppView) => void
   onOpenInsights?: () => void
+  onOpenSettings?: () => void
 }
 
 export function Header({
@@ -22,8 +25,10 @@ export function Header({
   onSignOut,
   username,
   view,
+  plugins,
   onViewChange,
   onOpenInsights,
+  onOpenSettings,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -41,39 +46,47 @@ export function Header({
       </div>
 
       <nav className="view-tabs" aria-label="Views">
-        <a
-          href={viewHref('journal')}
-          className={view === 'journal' ? 'active' : ''}
-          aria-current={view === 'journal' ? 'page' : undefined}
-          data-haptic="select"
-          onClick={go('journal')}
-        >
-          Journal
-        </a>
-        <a
-          href={viewHref('calendar')}
-          className={view === 'calendar' ? 'active' : ''}
-          aria-current={view === 'calendar' ? 'page' : undefined}
-          data-haptic="select"
-          onClick={go('calendar')}
-        >
-          Calendar
-        </a>
-        <a
-          href={viewHref('expenses')}
-          className={view === 'expenses' ? 'active' : ''}
-          aria-current={view === 'expenses' ? 'page' : undefined}
-          data-haptic="select"
-          onClick={go('expenses')}
-        >
-          Expenses
-        </a>
+        {plugins.diary && (
+          <>
+            <a
+              href={viewHref('journal')}
+              className={view === 'journal' ? 'active' : ''}
+              aria-current={view === 'journal' ? 'page' : undefined}
+              data-haptic="select"
+              onClick={go('journal')}
+            >
+              Journal
+            </a>
+            <a
+              href={viewHref('calendar')}
+              className={view === 'calendar' ? 'active' : ''}
+              aria-current={view === 'calendar' ? 'page' : undefined}
+              data-haptic="select"
+              onClick={go('calendar')}
+            >
+              Calendar
+            </a>
+          </>
+        )}
+        {plugins.expenses && (
+          <a
+            href={viewHref('expenses')}
+            className={view === 'expenses' ? 'active' : ''}
+            aria-current={view === 'expenses' ? 'page' : undefined}
+            data-haptic="select"
+            onClick={go('expenses')}
+          >
+            Expenses
+          </a>
+        )}
       </nav>
 
       <div className="header-actions">
-        <button type="button" className="header-btn" data-haptic="light" onClick={onExport}>
-          Export
-        </button>
+        {view !== 'settings' && (
+          <button type="button" className="header-btn" data-haptic="light" onClick={onExport}>
+            Export
+          </button>
+        )}
 
         <button
           type="button"
@@ -91,6 +104,20 @@ export function Header({
           <>
             <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
             <div className="header-menu" role="menu">
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  className={`menu-item${view === 'settings' ? ' menu-item-active' : ''}`}
+                  role="menuitem"
+                  data-haptic="select"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onOpenSettings()
+                  }}
+                >
+                  Settings
+                </button>
+              )}
               {onOpenInsights && (
                 <button
                   type="button"
