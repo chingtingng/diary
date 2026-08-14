@@ -446,16 +446,34 @@ button:focus {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  padding: 10px 14px 0;
 }
 
 .journal-tabs {
-  align-self: center;
-  margin: 10px 14px 0;
   flex-shrink: 0;
+  width: 100%;
+  margin: 0;
+  align-self: stretch;
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .journal-tabs a {
-  min-width: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.journal-tabs a.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .mobile-back {
@@ -504,6 +522,18 @@ button:focus {
 .journal-shell .calendar-view {
   flex: 1;
   min-height: 0;
+  margin: 10px 0;
+  padding: 12px;
+}
+
+.journal-shell .layout {
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 10px;
+}
+
+.journal-shell .mobile-back {
+  padding-left: 4px;
 }
 
 .expenses-shell {
