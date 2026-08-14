@@ -7,6 +7,7 @@ A lightweight personal daybook — journal your days, track moods, and log expen
 - **Journal mode** — daily pages with auto-save and mood tags
 - **Mood calendar** — colour-tagged calendar / mood board
 - **Expenses mode** — log spending by category with monthly totals
+- **Insurance plugin** — track policies, renewals, and upload PDFs/images
 - **Export** — download journal entries or expenses as `.txt`
 - **PWA support** — add to iPhone/Android home screen
 - **Supabase sync** — access your daybook across devices (optional)
@@ -23,7 +24,7 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
-Use the header tabs — **Journal**, **Calendar**, and **Expenses** — to move between views.
+Use the **plugin dropdown** beside the Daybook title to switch between Journal, Expenses, and Insurance. Inside Journal, use the **Journal / Calendar** tabs to move between writing and the mood calendar.
 
 ## Supabase Setup (Cloud Sync)
 
@@ -44,9 +45,10 @@ supabase/migrations/003_create_expenses.sql
 supabase/migrations/004_add_travel_category.sql
 supabase/migrations/005_replace_home_with_hobbies.sql
 supabase/migrations/006_drop_fun_category.sql
+supabase/migrations/007_create_insurance.sql
 ```
 
-These create the `entries` and `expenses` tables with row-level security so each user only sees their own data.
+These create the `entries`, `expenses`, `insurance_policies`, and `insurance_documents` tables (with RLS), plus a private `insurance-documents` Storage bucket.
 
 **Expenses date:** `spent_at` is a `timestamptz`. The UI is date-only; the app stores local noon so the calendar day is stable.
 
@@ -67,6 +69,16 @@ In Supabase Dashboard → **Authentication → Providers**, enable Email.
 The app maps usernames to synthetic emails like `you@diary.local` — you only ever type a username.
 
 Restart the dev server after adding `.env`.
+
+## Insurance plugin
+
+Track policies and store documents (PDF / images) in Supabase Storage on the free tier (1 GB included).
+
+- **Overview** — annual premium total, active count, next payment, renewals, recent files
+- **Policies** — insurer, type, coverage, premium, renewal, status
+- **Documents** — searchable vault with type filters and upload
+
+In local mode, files are kept in IndexedDB and metadata in `localStorage`.
 
 ## Add to iPhone Home Screen
 
@@ -89,7 +101,7 @@ Deploy the `dist/` folder to any static host (Vercel, Netlify, Cloudflare Pages,
 ## Tech Stack
 
 - **Vite + React + TypeScript** — fast, lightweight frontend
-- **Supabase** — Postgres database, auth, and sync
+- **Supabase** — Postgres database, auth, Storage, and sync
 - **vite-plugin-pwa** — offline support and installability
 
 ## Mood calendar

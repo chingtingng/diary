@@ -1,18 +1,48 @@
 import type { MouseEvent } from 'react'
 
-export type AppView = 'journal' | 'calendar' | 'expenses' | 'settings'
+export type AppView = 'journal' | 'calendar' | 'expenses' | 'insurance' | 'settings'
+export type AppPlugin = 'journal' | 'expenses' | 'insurance'
 export type ExpenseScreen = 'list' | 'insights' | 'budgets'
+export type InsuranceScreen = 'overview' | 'policies' | 'documents'
+export type JournalScreen = 'journal' | 'calendar'
 
 export interface AppLocation {
   view: AppView
   expenseScreen: ExpenseScreen
+  insuranceScreen: InsuranceScreen
 }
+
+/** Top-level plugins shown in the header dropdown. Calendar lives under Journal. */
+export const APP_PLUGINS: { id: AppPlugin; label: string }[] = [
+  { id: 'journal', label: 'Journal' },
+  { id: 'expenses', label: 'Expenses' },
+  { id: 'insurance', label: 'Insurance' },
+]
+
+export const JOURNAL_TABS: { id: JournalScreen; label: string }[] = [
+  { id: 'journal', label: 'Journal' },
+  { id: 'calendar', label: 'Calendar' },
+]
+
+export const INSURANCE_TABS: { id: InsuranceScreen; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'policies', label: 'Policies' },
+  { id: 'documents', label: 'Documents' },
+]
 
 const VIEW_PATHS: Record<AppView, string> = {
   journal: '/journal',
   calendar: '/calendar',
   expenses: '/expenses',
+  insurance: '/insurance',
   settings: '/settings',
+}
+
+export function pluginForView(view: AppView): AppPlugin {
+  if (view === 'calendar') return 'journal'
+  if (view === 'expenses') return 'expenses'
+  if (view === 'insurance') return 'insurance'
+  return 'journal'
 }
 
 function parseExpenseScreen(segment?: string): ExpenseScreen {
@@ -21,20 +51,38 @@ function parseExpenseScreen(segment?: string): ExpenseScreen {
   return 'list'
 }
 
+function parseInsuranceScreen(segment?: string): InsuranceScreen {
+  if (segment === 'policies') return 'policies'
+  if (segment === 'documents') return 'documents'
+  return 'overview'
+}
+
 export function parsePath(pathname: string): AppLocation {
   const parts = pathname.split('/').filter(Boolean)
   const head = parts[0]
 
-  if (head === 'calendar') return { view: 'calendar', expenseScreen: 'list' }
+  if (head === 'calendar') {
+    return { view: 'calendar', expenseScreen: 'list', insuranceScreen: 'overview' }
+  }
   if (head === 'expenses') {
     return {
       view: 'expenses',
       expenseScreen: parseExpenseScreen(parts[1]),
+      insuranceScreen: 'overview',
     }
   }
-  if (head === 'settings') return { view: 'settings', expenseScreen: 'list' }
+  if (head === 'insurance') {
+    return {
+      view: 'insurance',
+      expenseScreen: 'list',
+      insuranceScreen: parseInsuranceScreen(parts[1]),
+    }
+  }
+  if (head === 'settings') {
+    return { view: 'settings', expenseScreen: 'list', insuranceScreen: 'overview' }
+  }
 
-  return { view: 'journal', expenseScreen: 'list' }
+  return { view: 'journal', expenseScreen: 'list', insuranceScreen: 'overview' }
 }
 
 export function locationToPath(location: AppLocation): string {
@@ -44,11 +92,19 @@ export function locationToPath(location: AppLocation): string {
   if (location.view === 'expenses' && location.expenseScreen === 'budgets') {
     return '/expenses/budgets'
   }
+  if (location.view === 'insurance' && location.insuranceScreen !== 'overview') {
+    return `/insurance/${location.insuranceScreen}`
+  }
   return VIEW_PATHS[location.view]
 }
 
 export function viewHref(view: AppView): string {
   return VIEW_PATHS[view]
+}
+
+export function insuranceHref(screen: InsuranceScreen): string {
+  if (screen === 'overview') return VIEW_PATHS.insurance
+  return `/insurance/${screen}`
 }
 
 export function shouldHandleSpaClick(event: MouseEvent): boolean {
@@ -59,4 +115,8 @@ export function shouldHandleSpaClick(event: MouseEvent): boolean {
     !event.shiftKey &&
     !event.altKey
   )
+}
+
+export function defaultLocation(view: AppView = 'journal'): AppLocation {
+  return { view, expenseScreen: 'list', insuranceScreen: 'overview' }
 }

@@ -17,6 +17,11 @@ const PLUGINS: PluginOption[] = [
     title: 'Expenses',
     description: 'Spending log, categories, and insights.',
   },
+  {
+    id: 'insurance',
+    title: 'Insurance',
+    description: 'Policies, coverage, premiums, and document uploads.',
+  },
 ]
 
 interface SettingsProps {
@@ -25,12 +30,13 @@ interface SettingsProps {
 }
 
 export function Settings({ plugins, onChange }: SettingsProps) {
-  const enabledCount = (plugins.diary ? 1 : 0) + (plugins.expenses ? 1 : 0)
+  const enabledCount =
+    (plugins.diary ? 1 : 0) + (plugins.expenses ? 1 : 0) + (plugins.insurance ? 1 : 0)
 
   const toggle = (id: PluginId) => {
     const next = { ...plugins, [id]: !plugins[id] }
     // Keep at least one plugin on so the app always has a home view.
-    if (!next.diary && !next.expenses) return
+    if (!next.diary && !next.expenses && !next.insurance) return
     onChange(next)
   }
 

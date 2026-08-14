@@ -5,22 +5,31 @@ const VIEW_KEY = 'daybook-view'
 const EXPENSE_FILTER_KEY = 'daybook-expense-filter'
 const PLUGINS_KEY = 'daybook-plugins'
 
-export type PluginId = 'diary' | 'expenses'
+export type PluginId = 'diary' | 'expenses' | 'insurance'
 
 export interface PluginPrefs {
   diary: boolean
   expenses: boolean
+  insurance: boolean
 }
 
 export const DEFAULT_PLUGINS: PluginPrefs = {
   diary: true,
   expenses: true,
+  insurance: true,
 }
 
 export function readLastView(): AppView | null {
   try {
     const value = localStorage.getItem(VIEW_KEY)
-    if (value === 'journal' || value === 'calendar' || value === 'expenses') return value
+    if (
+      value === 'journal' ||
+      value === 'calendar' ||
+      value === 'expenses' ||
+      value === 'insurance'
+    ) {
+      return value
+    }
   } catch {
     /* ignore */
   }
@@ -66,6 +75,8 @@ export function readPlugins(): PluginPrefs {
     return {
       diary: parsed.diary !== false,
       expenses: parsed.expenses !== false,
+      // Default on for existing installs that predate the Insurance plugin.
+      insurance: parsed.insurance !== false,
     }
   } catch {
     return { ...DEFAULT_PLUGINS }
@@ -84,6 +95,7 @@ export function writePlugins(plugins: PluginPrefs) {
 export function firstEnabledView(plugins: PluginPrefs): AppView {
   if (plugins.diary) return 'journal'
   if (plugins.expenses) return 'expenses'
+  if (plugins.insurance) return 'insurance'
   return 'settings'
 }
 
@@ -91,5 +103,6 @@ export function isViewEnabled(view: AppView, plugins: PluginPrefs): boolean {
   if (view === 'settings') return true
   if (view === 'journal' || view === 'calendar') return plugins.diary
   if (view === 'expenses') return plugins.expenses
+  if (view === 'insurance') return plugins.insurance
   return false
 }
