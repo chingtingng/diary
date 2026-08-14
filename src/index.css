@@ -3218,6 +3218,37 @@ button.year-board-cell:hover {
   color: var(--ink);
 }
 
+.insurance-attach-modes {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--mist-deep);
+}
+
+.insurance-attach-modes button {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.insurance-attach-modes button.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.insurance-extract-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

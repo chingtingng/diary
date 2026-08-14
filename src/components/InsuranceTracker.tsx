@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { format, isToday, isYesterday } from 'date-fns'
+import { format, isToday, isYesterday, parseISO } from 'date-fns'
 import { atLocalNoon } from '../lib/dates'
+import { extractPolicyDraftFromFile } from '../lib/insuranceDocParse'
 import {
   INSURANCE_TABS,
   insuranceHref,
@@ -29,6 +30,8 @@ import {
   type PolicyTypeId,
   type PremiumFrequencyId,
 } from '../types/insurance'
+
+type AttachMode = 'existing' | 'new' | 'none'
 
 interface InsuranceTrackerProps {
   policies: InsurancePolicy[]
@@ -133,8 +136,10 @@ export function InsuranceTracker({
   const [file, setFile] = useState<File | null>(null)
   const [uploadNotes, setUploadNotes] = useState('')
   const [linkPolicyId, setLinkPolicyId] = useState<string>('')
-  const [createPolicyOnUpload, setCreatePolicyOnUpload] = useState(false)
+  const [attachMode, setAttachMode] = useState<AttachMode>('none')
   const [uploadPolicy, setUploadPolicy] = useState<InsurancePolicyInput>(EMPTY_POLICY)
+  const [extracting, setExtracting] = useState(false)
+  const [extractNote, setExtractNote] = useState<string | null>(null)
 
   const [policyDraft, setPolicyDraft] = useState<InsurancePolicyInput>(EMPTY_POLICY)
   const [renewalDate, setRenewalDate] = useState(() => atLocalNoon(new Date()))
@@ -142,11 +147,23 @@ export function InsuranceTracker({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formCardRef = useRef<HTMLElement | null>(null)
+  const extractTokenRef = useRef(0)
   useAllowFormScroll(formCardRef, showUpload || showPolicyForm)
 
   useEffect(() => {
-    if (uploadRequestKey > 0) setShowUpload(true)
-  }, [uploadRequestKey])
+    if (uploadRequestKey > 0) {
+      setShowUpload(true)
+      setAttachMode(policies.length > 0 ? 'existing' : 'new')
+    }
+  }, [uploadRequestKey, policies.length])
+
+  useEffect(() => {
+    if (!showUpload) return
+    setAttachMode((current) => {
+      if (current !== 'none') return current
+      return policies.length > 0 ? 'existing' : 'new'
+    })
+  }, [showUpload, policies.length])
 
   const activePolicies = useMemo(
     () => policies.filter((p) => p.status === 'active'),
@@ -188,21 +205,111 @@ export function InsuranceTracker({
     setError(null)
     setShowUpload(true)
     setShowPolicyForm(false)
+    setAttachMode(policies.length > 0 ? 'existing' : 'new')
   }
 
   const resetUpload = () => {
+    extractTokenRef.current += 1
     setFile(null)
     setUploadNotes('')
     setLinkPolicyId('')
-    setCreatePolicyOnUpload(false)
+    setAttachMode(policies.length > 0 ? 'existing' : 'new')
     setUploadPolicy(EMPTY_POLICY)
     setUploadRenewalDate(atLocalNoon(new Date()))
+    setExtracting(false)
+    setExtractNote(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const applyExtractedDraft = (
+    draft: Awaited<ReturnType<typeof extractPolicyDraftFromFile>>
+  ) => {
+    setUploadPolicy((prev) => ({
+      ...prev,
+      insurer: draft.insurer?.trim() || prev.insurer,
+      policyName: draft.policyName?.trim() || prev.policyName,
+      policyType: draft.policyType ?? prev.policyType,
+      premium: draft.premium ?? prev.premium,
+      premiumFrequency: draft.premiumFrequency ?? prev.premiumFrequency,
+      coverageAmount:
+        draft.coverageAmount === undefined ? prev.coverageAmount : draft.coverageAmount,
+      renewalDate: draft.renewalDate ?? prev.renewalDate,
+      status: 'active',
+    }))
+    if (draft.renewalDate) {
+      setUploadRenewalDate(atLocalNoon(parseISO(draft.renewalDate)))
+    }
+
+    if (draft.source === 'pdf' && draft.confidence !== 'low') {
+      setExtractNote('Details filled from the PDF — edit anything that looks off.')
+    } else if (draft.source === 'filename' && draft.confidence !== 'low') {
+      setExtractNote('Guessed details from the file name — edit before saving.')
+    } else if (draft.source === 'pdf') {
+      setExtractNote(
+        'Couldn’t read much from this PDF (it may be a scan). Fill in the details below.'
+      )
+    } else {
+      setExtractNote(null)
+    }
+  }
+
+  const handleFileChosen = async (next: File | null) => {
+    setFile(next)
+    setExtractNote(null)
+    if (!next) return
+
+    // Prefer attaching to an existing policy when one looks related.
+    if (attachMode === 'existing' && policies.length > 0) {
+      const token = ++extractTokenRef.current
+      setExtracting(true)
+      try {
+        const draft = await extractPolicyDraftFromFile(next)
+        if (token !== extractTokenRef.current) return
+        const needle = `${draft.insurer ?? ''} ${draft.policyName ?? ''}`.toLowerCase()
+        const match = policies.find((policy) => {
+          const haystack = `${policy.insurer} ${policy.policyName}`.toLowerCase()
+          return (
+            (draft.insurer &&
+              policy.insurer.toLowerCase().includes(draft.insurer.toLowerCase())) ||
+            (draft.policyName &&
+              haystack.includes(draft.policyName.toLowerCase())) ||
+            (needle.trim() && haystack.includes(needle.trim()))
+          )
+        })
+        if (match) {
+          setLinkPolicyId(match.id)
+          setExtractNote(`Suggested link: ${match.policyName}. Change it if that’s wrong.`)
+        }
+      } finally {
+        if (token === extractTokenRef.current) setExtracting(false)
+      }
+      return
+    }
+
+    if (attachMode !== 'new') setAttachMode('new')
+
+    const token = ++extractTokenRef.current
+    setExtracting(true)
+    try {
+      const draft = await extractPolicyDraftFromFile(next)
+      if (token !== extractTokenRef.current) return
+      applyExtractedDraft(draft)
+    } finally {
+      if (token === extractTokenRef.current) setExtracting(false)
+    }
   }
 
   const handleUpload = async () => {
     if (!file) {
       setError('Choose a PDF or image to upload.')
+      return
+    }
+    if (attachMode === 'existing' && !linkPolicyId) {
+      setError('Choose which policy this document belongs to.')
+      return
+    }
+    if (attachMode === 'new' && !uploadPolicy.policyName.trim()) {
+      setError('Policy name is required when creating a policy.')
       return
     }
 
@@ -212,25 +319,27 @@ export function InsuranceTracker({
       const input: InsuranceDocumentInput = {
         file,
         notes: uploadNotes,
-        policyId: createPolicyOnUpload ? null : linkPolicyId || null,
-        newPolicy: createPolicyOnUpload
-          ? {
-              ...uploadPolicy,
-              insurer: uploadPolicy.insurer.trim(),
-              policyName: uploadPolicy.policyName.trim() || file.name.replace(/\.[^.]+$/, ''),
-              renewalDate: toIsoDate(uploadRenewalDate),
-              premium: Number(uploadPolicy.premium) || 0,
-              coverageAmount:
-                uploadPolicy.coverageAmount === null || Number.isNaN(Number(uploadPolicy.coverageAmount))
-                  ? null
-                  : Number(uploadPolicy.coverageAmount),
-            }
-          : undefined,
+        policyId: attachMode === 'existing' ? linkPolicyId : null,
+        newPolicy:
+          attachMode === 'new'
+            ? {
+                ...uploadPolicy,
+                insurer: uploadPolicy.insurer.trim(),
+                policyName: uploadPolicy.policyName.trim() || file.name.replace(/\.[^.]+$/, ''),
+                renewalDate: toIsoDate(uploadRenewalDate),
+                premium: Number(uploadPolicy.premium) || 0,
+                coverageAmount:
+                  uploadPolicy.coverageAmount === null ||
+                  Number.isNaN(Number(uploadPolicy.coverageAmount))
+                    ? null
+                    : Number(uploadPolicy.coverageAmount),
+              }
+            : undefined,
       }
       await onUploadDocument(input)
       resetUpload()
       setShowUpload(false)
-      onScreenChange('documents')
+      onScreenChange(attachMode === 'new' ? 'policies' : 'documents')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
@@ -331,7 +440,9 @@ export function InsuranceTracker({
               id="insurance-file-input"
               type="file"
               accept="application/pdf,image/*,.pdf,.doc,.docx"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                void handleFileChosen(event.target.files?.[0] ?? null)
+              }}
             />
             <button
               type="button"
@@ -341,31 +452,77 @@ export function InsuranceTracker({
             >
               {file ? file.name : 'Choose PDF or image'}
             </button>
+            {extracting && <p className="insurance-extract-note">Reading document…</p>}
+            {!extracting && extractNote && (
+              <p className="insurance-extract-note">{extractNote}</p>
+            )}
           </div>
 
-          {policies.length > 0 && !createPolicyOnUpload && (
+          <div className="insurance-attach-modes" role="radiogroup" aria-label="Attach document to">
+            {policies.length > 0 && (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={attachMode === 'existing'}
+                className={attachMode === 'existing' ? 'active' : ''}
+                data-haptic="select"
+                onClick={() => setAttachMode('existing')}
+              >
+                Existing policy
+              </button>
+            )}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={attachMode === 'new'}
+              className={attachMode === 'new' ? 'active' : ''}
+              data-haptic="select"
+              onClick={() => {
+                setAttachMode('new')
+                if (!file) return
+                const token = ++extractTokenRef.current
+                setExtracting(true)
+                void extractPolicyDraftFromFile(file)
+                  .then((draft) => {
+                    if (token !== extractTokenRef.current) return
+                    applyExtractedDraft(draft)
+                  })
+                  .finally(() => {
+                    if (token === extractTokenRef.current) setExtracting(false)
+                  })
+              }}
+            >
+              New policy
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={attachMode === 'none'}
+              className={attachMode === 'none' ? 'active' : ''}
+              data-haptic="select"
+              onClick={() => setAttachMode('none')}
+            >
+              No policy
+            </button>
+          </div>
+
+          {attachMode === 'existing' && (
             <MenuSelect
-              label="Link to policy"
+              label="Policy"
               variant="field"
               value={linkPolicyId || 'none'}
               options={[
-                { id: 'none', label: 'No policy' },
-                ...policies.map((p) => ({ id: p.id, label: p.policyName })),
+                { id: 'none', label: 'Select a policy' },
+                ...policies.map((p) => ({
+                  id: p.id,
+                  label: p.insurer ? `${p.policyName} · ${p.insurer}` : p.policyName,
+                })),
               ]}
               onChange={(next) => setLinkPolicyId(next === 'none' ? '' : next)}
             />
           )}
 
-          <label className="insurance-check">
-            <input
-              type="checkbox"
-              checked={createPolicyOnUpload}
-              onChange={(event) => setCreatePolicyOnUpload(event.target.checked)}
-            />
-            <span>Also create a policy from this upload</span>
-          </label>
-
-          {createPolicyOnUpload && (
+          {attachMode === 'new' && (
             <div className="insurance-form-grid">
               <label className="expense-field">
                 <span>Policy name</span>
@@ -397,7 +554,21 @@ export function InsuranceTracker({
                 }
               />
               <label className="expense-field">
-                <span>Annual / monthly premium</span>
+                <span>Coverage amount</span>
+                <input
+                  inputMode="decimal"
+                  value={uploadPolicy.coverageAmount ?? ''}
+                  onChange={(e) =>
+                    setUploadPolicy((prev) => ({
+                      ...prev,
+                      coverageAmount: e.target.value === '' ? null : Number(e.target.value),
+                    }))
+                  }
+                  placeholder="Optional"
+                />
+              </label>
+              <label className="expense-field">
+                <span>Premium</span>
                 <input
                   inputMode="decimal"
                   value={uploadPolicy.premium || ''}
@@ -443,7 +614,7 @@ export function InsuranceTracker({
             type="button"
             className="expense-add-toggle"
             data-haptic="light"
-            disabled={submitting}
+            disabled={submitting || extracting}
             onClick={handleUpload}
           >
             {submitting ? 'Uploading…' : 'Upload document'}
