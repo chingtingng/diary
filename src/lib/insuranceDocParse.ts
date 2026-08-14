@@ -157,22 +157,47 @@ function parseDateCandidate(raw: string): string | null {
 }
 
 function detectInsurer(text: string): string | undefined {
-  const labeled = text.match(
-    /(?:insurer|insurance company|underwriter|provider)\s*[:\-]\s*([A-Za-z][A-Za-z0-9 &.'-]{1,60})/i
+  // Prefer explicit company letterheads / legal names first.
+  const letterhead = text.match(
+    /\b(FWD|AIA|Prudential|Great Eastern|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa|MSIG|Sompo)\s+Singapore(?:\s+Pte\.?\s*Ltd\.?)?/i
   )
-  if (labeled?.[1]) return labeled[1].trim()
-
-  const company = text.match(
-    /\b(FWD|AIA|Prudential|Income|Great Eastern|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\b(?:\s+Singapore)?(?:\s+Pte\.?\s*Ltd\.?)?/i
-  )
-  if (company?.[1]) {
-    const name = company[1]
+  if (letterhead?.[1]) {
+    const name = letterhead[1]
     if (/^fwd$/i.test(name)) return 'FWD'
     if (/^aia$/i.test(name)) return 'AIA'
+    if (/^axa$/i.test(name)) return 'AXA'
     return name
   }
 
+  const brandedProduct = text.match(
+    /\b(FWD|AIA|Prudential|Great Eastern|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\s+(?:Life|Health|Shield|PA|Medical|Travel|Car|Home)\b/i
+  )
+  if (brandedProduct?.[1]) {
+    const name = brandedProduct[1]
+    if (/^fwd$/i.test(name)) return 'FWD'
+    if (/^aia$/i.test(name)) return 'AIA'
+    if (/^axa$/i.test(name)) return 'AXA'
+    return name
+  }
+
+  const labeled = text.match(
+    /(?:insurer|insurance company|underwriter)\s*[:\-]\s*([A-Za-z][A-Za-z0-9 &.'-]{1,60})/i
+  )
+  if (labeled?.[1] && !/annual|monthly|premium|\bincome\b/i.test(labeled[1])) {
+    return labeled[1].trim()
+  }
+
+  // Never treat "annual income" as insurer "Income".
+  if (
+    /\bNTUC\s+Income\b/i.test(text) ||
+    /\bIncome\s+Insurance\b/i.test(text) ||
+    /\bIncome\s+Singapore\b/i.test(text)
+  ) {
+    return 'Income'
+  }
+
   for (const insurer of KNOWN_INSURERS) {
+    if (/^income$/i.test(insurer)) continue
     const pattern = new RegExp(`\\b${insurer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
     if (pattern.test(text)) return insurer
   }
@@ -186,31 +211,58 @@ function detectPolicyType(text: string): PolicyTypeId | undefined {
   return undefined
 }
 
-function detectPolicyName(text: string, insurer?: string): string | undefined {
-  const labeled = text.match(
-    /(?:policy name|plan name|product name|your plan|base plan)\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9 &/'().-]{2,80})/i
+function looksLikeTableNoise(value: string): boolean {
+  return /benefits|sum insured|period of insurance|premium payment|section\b|application form|policy owner|how much you would pay/i.test(
+    value
   )
-  if (labeled?.[1]) {
+}
+
+function detectPolicyName(text: string, insurer?: string): string | undefined {
+  // Title-style product names near the start of application / schedule packs.
+  const titled = text.match(
+    /\b((?:FWD|AIA|Prudential|Income|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\s+)?(Life PA Insurance|Life PA|Hospital Shield|[A-Z][A-Za-z0-9 &/'().-]{2,40} Insurance)\b/i
+  )
+  if (titled) {
+    const brand = titled[1]?.trim()
+    const product = titled[2].replace(/\s{2,}/g, ' ').trim()
+    if (!looksLikeTableNoise(product)) {
+      if (/^life pa(?: insurance)?$/i.test(product)) return 'Life PA Insurance'
+      if (brand && !new RegExp(`^${brand}`, 'i').test(product)) {
+        return `${brand} ${product}`.replace(/\s{2,}/g, ' ').trim()
+      }
+      return product
+    }
+  }
+
+  const schedule = text.match(
+    /Your\s+((?:FWD|AIA|Prudential|Income|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\s+[A-Za-z0-9 &/'().-]{2,40}?)\s+insurance policy schedule/i
+  )
+  if (schedule?.[1] && !looksLikeTableNoise(schedule[1])) {
+    const name = schedule[1].replace(/\s{2,}/g, ' ').trim()
+    if (/life pa/i.test(name)) return 'Life PA Insurance'
+    return name
+  }
+
+  const labeled = text.match(
+    /(?:policy name|plan name|product name)\s*[:\-]\s*([A-Za-z0-9][A-Za-z0-9 &/'().-]{2,60})/i
+  )
+  if (labeled?.[1] && !looksLikeTableNoise(labeled[1])) {
     return labeled[1].replace(/\s{2,}/g, ' ').trim()
   }
 
-  const branded = text.match(
-    /\b((?:FWD|AIA|Prudential|Income|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\s+[A-Za-z0-9][A-Za-z0-9 &/'().-]{2,50}?)\s+(?:insurance|policy|base plan|application)/i
-  )
-  if (branded?.[1]) return branded[1].replace(/\s{2,}/g, ' ').trim()
-
-  const lifePa = text.match(/\b((?:FWD\s+)?Life PA)\b/i)
-  if (lifePa?.[1]) return /fwd/i.test(lifePa[1]) ? lifePa[1] : `FWD ${lifePa[1]}`
+  const lifePa = text.match(/\bLife PA(?:\s+Insurance)?\b/i)
+  if (lifePa) return 'Life PA Insurance'
 
   if (insurer) {
     const around = text.match(
       new RegExp(
-        `${insurer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+([A-Z][A-Za-z0-9 &/'().-]{3,60})`,
+        `${insurer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(Life PA(?:\\s+Insurance)?|[A-Z][A-Za-z0-9 &/'().-]{2,40})`,
         'i'
       )
     )
-    if (around?.[1] && !/policy|insurance|limited|ltd|pte|singapore/i.test(around[1])) {
-      return `${insurer} ${around[1]}`.replace(/\s{2,}/g, ' ').trim()
+    if (around?.[1] && !looksLikeTableNoise(around[1])) {
+      if (/life pa/i.test(around[1])) return 'Life PA Insurance'
+      return around[1].replace(/\s{2,}/g, ' ').trim()
     }
   }
   return undefined
