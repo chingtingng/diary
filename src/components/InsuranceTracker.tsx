@@ -148,22 +148,23 @@ export function InsuranceTracker({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formCardRef = useRef<HTMLElement | null>(null)
   const extractTokenRef = useRef(0)
+  const lastDraftRef = useRef<Awaited<ReturnType<typeof extractPolicyDraftFromFile>> | null>(
+    null
+  )
   useAllowFormScroll(formCardRef, showUpload || showPolicyForm)
 
   useEffect(() => {
     if (uploadRequestKey > 0) {
       setShowUpload(true)
-      setAttachMode(policies.length > 0 ? 'existing' : 'new')
+      // Autofill only shows on New policy — default there so choosing a PDF fills the form.
+      setAttachMode('new')
     }
-  }, [uploadRequestKey, policies.length])
+  }, [uploadRequestKey])
 
   useEffect(() => {
     if (!showUpload) return
-    setAttachMode((current) => {
-      if (current !== 'none') return current
-      return policies.length > 0 ? 'existing' : 'new'
-    })
-  }, [showUpload, policies.length])
+    setAttachMode((current) => (current === 'none' ? 'new' : current))
+  }, [showUpload])
 
   const activePolicies = useMemo(
     () => policies.filter((p) => p.status === 'active'),
@@ -205,15 +206,16 @@ export function InsuranceTracker({
     setError(null)
     setShowUpload(true)
     setShowPolicyForm(false)
-    setAttachMode(policies.length > 0 ? 'existing' : 'new')
+    setAttachMode('new')
   }
 
   const resetUpload = () => {
     extractTokenRef.current += 1
+    lastDraftRef.current = null
     setFile(null)
     setUploadNotes('')
     setLinkPolicyId('')
-    setAttachMode(policies.length > 0 ? 'existing' : 'new')
+    setAttachMode('new')
     setUploadPolicy(EMPTY_POLICY)
     setUploadRenewalDate(atLocalNoon(new Date()))
     setExtracting(false)
@@ -221,13 +223,33 @@ export function InsuranceTracker({
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const describeDraft = (
+    draft: Awaited<ReturnType<typeof extractPolicyDraftFromFile>>
+  ): string => {
+    if (draft.error) {
+      return `Couldn’t fully read this file (${draft.error}). Check the fields below.`
+    }
+    if (draft.source === 'pdf' && draft.confidence !== 'low') {
+      return 'Details filled from the PDF — edit anything that looks off.'
+    }
+    if (draft.source === 'filename' && draft.confidence !== 'low') {
+      return 'Guessed details from the file name — edit before saving.'
+    }
+    if (draft.source === 'pdf' && (draft.textLength ?? 0) === 0) {
+      return 'This PDF looks like a scan with no selectable text. Fill in the details below.'
+    }
+    return 'Couldn’t detect much automatically — fill in the details below.'
+  }
+
   const applyExtractedDraft = (
     draft: Awaited<ReturnType<typeof extractPolicyDraftFromFile>>
   ) => {
+    lastDraftRef.current = draft
+    const fallbackName = draft.policyName?.trim()
     setUploadPolicy((prev) => ({
       ...prev,
       insurer: draft.insurer?.trim() || prev.insurer,
-      policyName: draft.policyName?.trim() || prev.policyName,
+      policyName: fallbackName || prev.policyName,
       policyType: draft.policyType ?? prev.policyType,
       premium: draft.premium ?? prev.premium,
       premiumFrequency: draft.premiumFrequency ?? prev.premiumFrequency,
@@ -237,65 +259,80 @@ export function InsuranceTracker({
       status: 'active',
     }))
     if (draft.renewalDate) {
-      setUploadRenewalDate(atLocalNoon(parseISO(draft.renewalDate)))
+      try {
+        setUploadRenewalDate(atLocalNoon(parseISO(draft.renewalDate)))
+      } catch {
+        /* ignore bad dates */
+      }
     }
+    setExtractNote(describeDraft(draft))
+  }
 
-    if (draft.source === 'pdf' && draft.confidence !== 'low') {
-      setExtractNote('Details filled from the PDF — edit anything that looks off.')
-    } else if (draft.source === 'filename' && draft.confidence !== 'low') {
-      setExtractNote('Guessed details from the file name — edit before saving.')
-    } else if (draft.source === 'pdf') {
-      setExtractNote(
-        'Couldn’t read much from this PDF (it may be a scan). Fill in the details below.'
+  const findPolicyMatch = (
+    draft: Awaited<ReturnType<typeof extractPolicyDraftFromFile>>
+  ): InsurancePolicy | undefined => {
+    const needle = `${draft.insurer ?? ''} ${draft.policyName ?? ''}`.toLowerCase().trim()
+    return policies.find((policy) => {
+      const haystack = `${policy.insurer} ${policy.policyName}`.toLowerCase()
+      return (
+        (draft.insurer &&
+          policy.insurer.toLowerCase().includes(draft.insurer.toLowerCase())) ||
+        (draft.policyName && haystack.includes(draft.policyName.toLowerCase())) ||
+        (needle.length > 2 && haystack.includes(needle))
       )
-    } else {
-      setExtractNote(null)
-    }
+    })
   }
 
   const handleFileChosen = async (next: File | null) => {
     setFile(next)
     setExtractNote(null)
+    lastDraftRef.current = null
     if (!next) return
-
-    // Prefer attaching to an existing policy when one looks related.
-    if (attachMode === 'existing' && policies.length > 0) {
-      const token = ++extractTokenRef.current
-      setExtracting(true)
-      try {
-        const draft = await extractPolicyDraftFromFile(next)
-        if (token !== extractTokenRef.current) return
-        const needle = `${draft.insurer ?? ''} ${draft.policyName ?? ''}`.toLowerCase()
-        const match = policies.find((policy) => {
-          const haystack = `${policy.insurer} ${policy.policyName}`.toLowerCase()
-          return (
-            (draft.insurer &&
-              policy.insurer.toLowerCase().includes(draft.insurer.toLowerCase())) ||
-            (draft.policyName &&
-              haystack.includes(draft.policyName.toLowerCase())) ||
-            (needle.trim() && haystack.includes(needle.trim()))
-          )
-        })
-        if (match) {
-          setLinkPolicyId(match.id)
-          setExtractNote(`Suggested link: ${match.policyName}. Change it if that’s wrong.`)
-        }
-      } finally {
-        if (token === extractTokenRef.current) setExtracting(false)
-      }
-      return
-    }
-
-    if (attachMode !== 'new') setAttachMode('new')
 
     const token = ++extractTokenRef.current
     setExtracting(true)
     try {
       const draft = await extractPolicyDraftFromFile(next)
       if (token !== extractTokenRef.current) return
+      lastDraftRef.current = draft
+
+      if (attachMode === 'existing' && policies.length > 0) {
+        const match = findPolicyMatch(draft)
+        if (match) {
+          setLinkPolicyId(match.id)
+          setExtractNote(`Suggested link: ${match.policyName}. Change it if that’s wrong.`)
+          return
+        }
+        // No match — flip to New policy and autofill so the fields are useful.
+        setAttachMode('new')
+        applyExtractedDraft(draft)
+        return
+      }
+
+      if (attachMode !== 'new') setAttachMode('new')
       applyExtractedDraft(draft)
+    } catch (err) {
+      if (token !== extractTokenRef.current) return
+      setExtractNote(err instanceof Error ? err.message : 'Could not read that file')
     } finally {
       if (token === extractTokenRef.current) setExtracting(false)
+    }
+  }
+
+  const switchAttachMode = (mode: AttachMode) => {
+    setAttachMode(mode)
+    if (mode === 'new' && lastDraftRef.current) {
+      applyExtractedDraft(lastDraftRef.current)
+    } else if (mode === 'new' && file && !lastDraftRef.current) {
+      void handleFileChosen(file)
+    } else if (mode === 'existing' && lastDraftRef.current) {
+      const match = findPolicyMatch(lastDraftRef.current)
+      if (match) {
+        setLinkPolicyId(match.id)
+        setExtractNote(`Suggested link: ${match.policyName}. Change it if that’s wrong.`)
+      } else {
+        setExtractNote('Pick which policy this document belongs to.')
+      }
     }
   }
 
@@ -466,7 +503,7 @@ export function InsuranceTracker({
                 aria-checked={attachMode === 'existing'}
                 className={attachMode === 'existing' ? 'active' : ''}
                 data-haptic="select"
-                onClick={() => setAttachMode('existing')}
+                onClick={() => switchAttachMode('existing')}
               >
                 Existing policy
               </button>
@@ -477,20 +514,7 @@ export function InsuranceTracker({
               aria-checked={attachMode === 'new'}
               className={attachMode === 'new' ? 'active' : ''}
               data-haptic="select"
-              onClick={() => {
-                setAttachMode('new')
-                if (!file) return
-                const token = ++extractTokenRef.current
-                setExtracting(true)
-                void extractPolicyDraftFromFile(file)
-                  .then((draft) => {
-                    if (token !== extractTokenRef.current) return
-                    applyExtractedDraft(draft)
-                  })
-                  .finally(() => {
-                    if (token === extractTokenRef.current) setExtracting(false)
-                  })
-              }}
+              onClick={() => switchAttachMode('new')}
             >
               New policy
             </button>
@@ -500,7 +524,7 @@ export function InsuranceTracker({
               aria-checked={attachMode === 'none'}
               className={attachMode === 'none' ? 'active' : ''}
               data-haptic="select"
-              onClick={() => setAttachMode('none')}
+              onClick={() => switchAttachMode('none')}
             >
               No policy
             </button>

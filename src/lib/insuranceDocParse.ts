@@ -1,8 +1,12 @@
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import type { InsurancePolicyInput, PolicyTypeId, PremiumFrequencyId } from '../types/insurance'
 
 export type ExtractedPolicyDraft = Partial<InsurancePolicyInput> & {
   source: 'pdf' | 'filename' | 'none'
   confidence: 'high' | 'medium' | 'low'
+  /** Raw text sample for debugging empty extractions */
+  textLength?: number
+  error?: string
 }
 
 const KNOWN_INSURERS = [
@@ -168,9 +172,9 @@ function detectRenewalDate(text: string): string | undefined {
   return parseDateCandidate(labeled[1]) ?? undefined
 }
 
-function fromFilename(fileName: string): ExtractedPolicyDraft {
+function fromFilename(fileName: string, error?: string): ExtractedPolicyDraft {
   const base = fileName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
-  if (!base) return { source: 'none', confidence: 'low' }
+  if (!base) return { source: 'none', confidence: 'low', error }
 
   const insurer = detectInsurer(base)
   const policyType = detectPolicyType(base)
@@ -186,12 +190,15 @@ function fromFilename(fileName: string): ExtractedPolicyDraft {
     insurer,
     policyName: policyName || base,
     policyType,
+    error,
   }
 }
 
-function parseExtractedText(text: string, fileName: string): ExtractedPolicyDraft {
+export function parseExtractedText(text: string, fileName: string): ExtractedPolicyDraft {
   const compact = text.replace(/\s+/g, ' ').trim()
-  if (compact.length < 20) return fromFilename(fileName)
+  if (compact.length < 20) {
+    return { ...fromFilename(fileName), textLength: compact.length }
+  }
 
   const insurer = detectInsurer(compact) ?? detectInsurer(fileName)
   const policyType = detectPolicyType(compact) ?? detectPolicyType(fileName)
@@ -217,6 +224,7 @@ function parseExtractedText(text: string, fileName: string): ExtractedPolicyDraf
   return {
     source: 'pdf',
     confidence: filled ? (premium || coverage || insurer ? 'high' : 'medium') : 'low',
+    textLength: compact.length,
     insurer,
     policyName,
     policyType,
@@ -229,10 +237,7 @@ function parseExtractedText(text: string, fileName: string): ExtractedPolicyDraf
 
 async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import('pdfjs-dist')
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).toString()
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker
 
   const data = new Uint8Array(await file.arrayBuffer())
   const doc = await pdfjs.getDocument({ data }).promise
@@ -267,7 +272,8 @@ export async function extractPolicyDraftFromFile(file: File): Promise<ExtractedP
   try {
     const text = await extractPdfText(file)
     return parseExtractedText(text, file.name)
-  } catch {
-    return fromFilename(file.name)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Could not read PDF'
+    return fromFilename(file.name, message)
   }
 }
