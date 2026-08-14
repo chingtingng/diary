@@ -130,8 +130,53 @@ function attachPolicyMeta(
 }
 
 function sanitizeFileName(name: string): string {
-  return name.replace(/[^\w.\-()+\s]/g, '_').slice(0, 180)
+  return name
+    .replace(/[^\w.\-+()]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 180) || 'document'
 }
+
+function errorMessage(err: unknown, fallback = 'Upload failed'): string {
+  if (err instanceof Error && err.message.trim()) return err.message
+  if (err && typeof err === 'object') {
+    const record = err as Record<string, unknown>
+    for (const key of ['message', 'error', 'msg', 'details', 'hint']) {
+      const value = record[key]
+      if (typeof value === 'string' && value.trim()) return value
+    }
+  }
+  if (typeof err === 'string' && err.trim()) return err
+  return fallback
+}
+
+function isMissingRelationError(message: string): boolean {
+  return /relation|does not exist|Could not find the table|schema cache/i.test(message)
+}
+
+function isMissingBucketError(message: string): boolean {
+  return /bucket not found|not found|No such bucket|row-level security|Unauthorized|Jwt/i.test(
+    message
+  )
+}
+
+function guessContentType(file: File): string {
+  if (file.type) return file.type
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.pdf')) return 'application/pdf'
+  if (name.endsWith('.png')) return 'image/png'
+  if (/\.jpe?g$/.test(name)) return 'image/jpeg'
+  if (name.endsWith('.webp')) return 'image/webp'
+  if (name.endsWith('.heic')) return 'image/heic'
+  if (name.endsWith('.heif')) return 'image/heif'
+  if (name.endsWith('.doc')) return 'application/msword'
+  if (name.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  }
+  return 'application/octet-stream'
+}
+
+const LOCAL_PATH_PREFIX = 'idb://'
 
 export async function fetchPolicies(userId?: string): Promise<InsurancePolicy[]> {
   if (getStorageMode() === 'local') {
@@ -164,7 +209,16 @@ export async function fetchDocuments(userId?: string): Promise<InsuranceDocument
     .eq('user_id', userId)
     .order('uploaded_at', { ascending: false })
 
-  if (error) throw error
+  if (error) {
+    // Older projects / missing FK embed: still load documents without joined policy labels.
+    const fallback = await supabase
+      .from('insurance_documents')
+      .select('*')
+      .eq('user_id', userId)
+      .order('uploaded_at', { ascending: false })
+    if (fallback.error) throw fallback.error
+    return sortDocuments((fallback.data as InsuranceDocumentRow[]).map(rowToDocument))
+  }
   return sortDocuments((data as InsuranceDocumentRow[]).map(rowToDocument))
 }
 
@@ -214,7 +268,15 @@ export async function createPolicy(
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    const message = errorMessage(error, 'Could not save policy')
+    if (isMissingRelationError(message)) {
+      throw new Error(
+        'Insurance tables are missing in Supabase. Run supabase/migrations/007_create_insurance.sql in the SQL editor, then try again.'
+      )
+    }
+    throw new Error(message)
+  }
   return rowToPolicy(data as InsurancePolicyRow)
 }
 
@@ -306,15 +368,16 @@ export async function uploadDocument(
   const now = new Date().toISOString()
   const docId = generateId()
   const owner = userId ?? 'local'
-  const storagePath = `${owner}/${docId}/${sanitizeFileName(fileName)}`
+  const objectPath = `${owner}/${docId}/${sanitizeFileName(fileName)}`
+  const contentType = guessContentType(input.file)
 
   if (getStorageMode() === 'local') {
-    await putLocalBlob(storagePath, input.file)
+    await putLocalBlob(objectPath, input.file)
     const document: InsuranceDocument = {
       id: docId,
       policyId,
       fileName,
-      storagePath,
+      storagePath: `${LOCAL_PATH_PREFIX}${objectPath}`,
       fileType,
       fileSize,
       notes: input.notes?.trim() ?? '',
@@ -337,19 +400,36 @@ export async function uploadDocument(
 
   if (!supabase || !userId) throw new Error('Not authenticated')
 
+  let storagePath = objectPath
+  let usedLocalFallback = false
+
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
-    .upload(storagePath, input.file, {
+    .upload(objectPath, input.file, {
       cacheControl: '3600',
       upsert: false,
-      contentType: input.file.type || undefined,
+      contentType,
     })
 
   if (uploadError) {
-    if (createdPolicy) {
-      await deletePolicy(createdPolicy.id, userId).catch(() => undefined)
+    const message = errorMessage(uploadError, 'Storage upload failed')
+    // Keep the upload usable even before the Storage bucket migration is applied.
+    try {
+      await putLocalBlob(objectPath, input.file)
+      storagePath = `${LOCAL_PATH_PREFIX}${objectPath}`
+      usedLocalFallback = true
+      console.warn('[daybook] Supabase Storage upload failed; saved file locally.', message)
+    } catch {
+      if (createdPolicy) {
+        await deletePolicy(createdPolicy.id, userId).catch(() => undefined)
+      }
+      if (isMissingBucketError(message) || /bucket/i.test(message)) {
+        throw new Error(
+          'Could not upload the file. Create the insurance-documents Storage bucket by running supabase/migrations/007_create_insurance.sql, then try again.'
+        )
+      }
+      throw new Error(message)
     }
-    throw uploadError
   }
 
   const { data, error } = await supabase
@@ -362,30 +442,51 @@ export async function uploadDocument(
       storage_path: storagePath,
       file_type: fileType,
       file_size: fileSize,
-      notes: input.notes?.trim() ?? '',
+      notes: usedLocalFallback
+        ? `${input.notes?.trim() ?? ''}${input.notes?.trim() ? ' · ' : ''}Stored on this device only`
+            .trim()
+        : input.notes?.trim() ?? '',
     })
-    .select('*, insurance_policies(insurer, policy_name)')
+    .select('*')
     .single()
 
   if (error) {
-    await supabase.storage.from(BUCKET).remove([storagePath]).catch(() => undefined)
+    if (!usedLocalFallback) {
+      await supabase.storage.from(BUCKET).remove([objectPath]).catch(() => undefined)
+    } else {
+      await deleteLocalBlob(objectPath).catch(() => undefined)
+    }
     if (createdPolicy) {
       await deletePolicy(createdPolicy.id, userId).catch(() => undefined)
     }
-    throw error
+    const message = errorMessage(error, 'Could not save document')
+    if (isMissingRelationError(message)) {
+      throw new Error(
+        'Insurance tables are missing in Supabase. Run supabase/migrations/007_create_insurance.sql in the SQL editor, then try again.'
+      )
+    }
+    throw new Error(message)
   }
 
-  return {
-    document: rowToDocument(data as InsuranceDocumentRow),
-    policy: createdPolicy,
+  const document = rowToDocument(data as InsuranceDocumentRow)
+  if (createdPolicy) {
+    document.insurer = createdPolicy.insurer
+    document.policyName = createdPolicy.policyName
   }
+
+  return { document, policy: createdPolicy }
 }
 
 export async function deleteDocument(id: string, userId?: string): Promise<void> {
   if (getStorageMode() === 'local') {
     const documents = readLocalDocuments()
     const doc = documents.find((d) => d.id === id)
-    if (doc) await deleteLocalBlob(doc.storagePath).catch(() => undefined)
+    if (doc) {
+      const path = doc.storagePath.startsWith(LOCAL_PATH_PREFIX)
+        ? doc.storagePath.slice(LOCAL_PATH_PREFIX.length)
+        : doc.storagePath
+      await deleteLocalBlob(path).catch(() => undefined)
+    }
     writeLocalDocuments(documents.filter((d) => d.id !== id))
     return
   }
@@ -399,7 +500,7 @@ export async function deleteDocument(id: string, userId?: string): Promise<void>
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (fetchError) throw fetchError
+  if (fetchError) throw new Error(errorMessage(fetchError))
 
   const { error } = await supabase
     .from('insurance_documents')
@@ -407,10 +508,16 @@ export async function deleteDocument(id: string, userId?: string): Promise<void>
     .eq('id', id)
     .eq('user_id', userId)
 
-  if (error) throw error
+  if (error) throw new Error(errorMessage(error))
 
   if (data?.storage_path) {
-    await supabase.storage.from(BUCKET).remove([data.storage_path]).catch(() => undefined)
+    if (data.storage_path.startsWith(LOCAL_PATH_PREFIX)) {
+      await deleteLocalBlob(data.storage_path.slice(LOCAL_PATH_PREFIX.length)).catch(
+        () => undefined
+      )
+    } else {
+      await supabase.storage.from(BUCKET).remove([data.storage_path]).catch(() => undefined)
+    }
   }
 }
 
@@ -418,8 +525,14 @@ export async function getDocumentUrl(
   document: InsuranceDocument,
   userId?: string
 ): Promise<string | null> {
-  if (getStorageMode() === 'local') {
-    const blob = await getLocalBlob(document.storagePath)
+  if (
+    getStorageMode() === 'local' ||
+    document.storagePath.startsWith(LOCAL_PATH_PREFIX)
+  ) {
+    const path = document.storagePath.startsWith(LOCAL_PATH_PREFIX)
+      ? document.storagePath.slice(LOCAL_PATH_PREFIX.length)
+      : document.storagePath
+    const blob = await getLocalBlob(path)
     if (!blob) return null
     return URL.createObjectURL(blob)
   }
@@ -430,6 +543,6 @@ export async function getDocumentUrl(
     .from(BUCKET)
     .createSignedUrl(document.storagePath, 60 * 10)
 
-  if (error) throw error
+  if (error) throw new Error(errorMessage(error))
   return data.signedUrl
 }

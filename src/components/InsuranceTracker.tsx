@@ -378,7 +378,7 @@ export function InsuranceTracker({
       setShowUpload(false)
       onScreenChange(attachMode === 'new' ? 'policies' : 'documents')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      setError(err instanceof Error ? err.message : String(err || 'Upload failed'))
     } finally {
       setSubmitting(false)
     }
@@ -449,7 +449,7 @@ export function InsuranceTracker({
         ))}
       </div>
 
-      {error && <p className="expense-error">{error}</p>}
+      {error && <p className="expense-error insurance-error-banner">{error}</p>}
 
       {loading ? (
         <p className="loading-text">Loading insurance…</p>
@@ -469,6 +469,8 @@ export function InsuranceTracker({
               Cancel
             </button>
           </div>
+
+          {error && <p className="expense-error">{error}</p>}
 
           <div className="insurance-file-picker">
             <span className="date-field-label">File</span>

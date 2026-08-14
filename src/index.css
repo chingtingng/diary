@@ -2818,6 +2818,18 @@ button.year-board-cell:hover {
   box-sizing: border-box;
 }
 
+.expense-error,
+.insurance-error-banner {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fde8e8;
+  color: var(--danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .insurance-tabs {
   grid-template-columns: repeat(3, 1fr);
 }
