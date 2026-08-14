@@ -1,15 +1,58 @@
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import type { InsurancePolicyInput, PolicyTypeId, PremiumFrequencyId } from '../types/insurance'
 
 export type ExtractedPolicyDraft = Partial<InsurancePolicyInput> & {
   source: 'pdf' | 'filename' | 'none'
   confidence: 'high' | 'medium' | 'low'
-  /** Raw text sample for debugging empty extractions */
   textLength?: number
   error?: string
 }
 
+/** Safari still lacks ReadableStream async iteration used by pdf.js getTextContent. */
+function ensurePdfPolyfills() {
+  const promiseCtor = Promise as typeof Promise & {
+    withResolvers?: () => {
+      promise: Promise<unknown>
+      resolve: (value?: unknown) => void
+      reject: (reason?: unknown) => void
+    }
+  }
+  if (typeof promiseCtor.withResolvers !== 'function') {
+    promiseCtor.withResolvers = function withResolvers() {
+      let resolve!: (value?: unknown) => void
+      let reject!: (reason?: unknown) => void
+      const promise = new Promise((res, rej) => {
+        resolve = res as (value?: unknown) => void
+        reject = rej
+      })
+      return { promise, resolve, reject }
+    }
+  }
+
+  if (
+    typeof ReadableStream !== 'undefined' &&
+    !(Symbol.asyncIterator in ReadableStream.prototype)
+  ) {
+    Object.defineProperty(ReadableStream.prototype, Symbol.asyncIterator, {
+      configurable: true,
+      value: async function* (this: ReadableStream<unknown>) {
+        const reader = this.getReader()
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) return
+            yield value
+          }
+        } finally {
+          reader.releaseLock()
+        }
+      },
+    })
+  }
+}
+
 const KNOWN_INSURERS = [
+  'FWD',
   'AIA',
   'Prudential',
   'Income',
@@ -28,7 +71,6 @@ const KNOWN_INSURERS = [
   'Aetna',
   'MetLife',
   'Zurich',
-  'FWD',
   'China Life',
   'MSIG',
   'Sompo',
@@ -38,12 +80,24 @@ const KNOWN_INSURERS = [
 ]
 
 const TYPE_KEYWORDS: { id: PolicyTypeId; patterns: RegExp[] }[] = [
+  {
+    id: 'life',
+    patterns: [/\blife\b/i, /\bterm life\b/i, /\bwhole life\b/i, /\blife pa\b/i],
+  },
+  {
+    id: 'disability',
+    patterns: [
+      /\bdisability\b/i,
+      /\bincome protection\b/i,
+      /\bcritical illness\b/i,
+      /\bpersonal accident\b/i,
+      /\baccidental death\b/i,
+    ],
+  },
   { id: 'health', patterns: [/\bhealth\b/i, /\bhospital\b/i, /\bmedical\b/i, /\bmedi\b/i, /\bshield\b/i] },
-  { id: 'life', patterns: [/\blife\b/i, /\bterm life\b/i, /\bwhole life\b/i] },
   { id: 'auto', patterns: [/\bauto\b/i, /\bmotor\b/i, /\bcar insurance\b/i, /\bvehicle\b/i] },
   { id: 'home', patterns: [/\bhome\b/i, /\bhouse\b/i, /\bproperty\b/i, /\bfire\b/i] },
   { id: 'travel', patterns: [/\btravel\b/i, /\btrip\b/i] },
-  { id: 'disability', patterns: [/\bdisability\b/i, /\bincome protection\b/i, /\bci\b/i, /\bcritical illness\b/i] },
 ]
 
 function cleanMoney(raw: string): number | null {
@@ -108,6 +162,16 @@ function detectInsurer(text: string): string | undefined {
   )
   if (labeled?.[1]) return labeled[1].trim()
 
+  const company = text.match(
+    /\b(FWD|AIA|Prudential|Income|Great Eastern|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\b(?:\s+Singapore)?(?:\s+Pte\.?\s*Ltd\.?)?/i
+  )
+  if (company?.[1]) {
+    const name = company[1]
+    if (/^fwd$/i.test(name)) return 'FWD'
+    if (/^aia$/i.test(name)) return 'AIA'
+    return name
+  }
+
   for (const insurer of KNOWN_INSURERS) {
     const pattern = new RegExp(`\\b${insurer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
     if (pattern.test(text)) return insurer
@@ -124,11 +188,19 @@ function detectPolicyType(text: string): PolicyTypeId | undefined {
 
 function detectPolicyName(text: string, insurer?: string): string | undefined {
   const labeled = text.match(
-    /(?:policy name|plan name|product name|product|plan)\s*[:\-]\s*([A-Za-z0-9][A-Za-z0-9 &/'().-]{2,80})/i
+    /(?:policy name|plan name|product name|your plan|base plan)\s*[:\-]?\s*([A-Za-z0-9][A-Za-z0-9 &/'().-]{2,80})/i
   )
   if (labeled?.[1]) {
     return labeled[1].replace(/\s{2,}/g, ' ').trim()
   }
+
+  const branded = text.match(
+    /\b((?:FWD|AIA|Prudential|Income|Aviva|AXA|Allianz|Manulife|Singlife|Etiqa)\s+[A-Za-z0-9][A-Za-z0-9 &/'().-]{2,50}?)\s+(?:insurance|policy|base plan|application)/i
+  )
+  if (branded?.[1]) return branded[1].replace(/\s{2,}/g, ' ').trim()
+
+  const lifePa = text.match(/\b((?:FWD\s+)?Life PA)\b/i)
+  if (lifePa?.[1]) return /fwd/i.test(lifePa[1]) ? lifePa[1] : `FWD ${lifePa[1]}`
 
   if (insurer) {
     const around = text.match(
@@ -137,8 +209,8 @@ function detectPolicyName(text: string, insurer?: string): string | undefined {
         'i'
       )
     )
-    if (around?.[1] && !/policy|insurance|limited|ltd|pte/i.test(around[1])) {
-      return around[1].replace(/\s{2,}/g, ' ').trim()
+    if (around?.[1] && !/policy|insurance|limited|ltd|pte|singapore/i.test(around[1])) {
+      return `${insurer} ${around[1]}`.replace(/\s{2,}/g, ' ').trim()
     }
   }
   return undefined
@@ -156,7 +228,7 @@ function detectMoney(
     const nearby = match[0].toLowerCase()
     const frequency: PremiumFrequencyId | undefined = nearby.includes('month')
       ? 'monthly'
-      : nearby.includes('year') || nearby.includes('annual')
+      : nearby.includes('year') || nearby.includes('annual') || nearby.includes('yearly')
         ? 'annual'
         : undefined
     return { amount, frequency }
@@ -166,7 +238,7 @@ function detectMoney(
 
 function detectRenewalDate(text: string): string | undefined {
   const labeled = text.match(
-    /(?:renewal date|renews on|expiry date|expiration date|valid until|policy end date|next renewal)\s*[:\-]?\s*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4}|[0-9]{4}[/-][0-9]{1,2}[/-][0-9]{1,2}|\d{1,2}\s+[A-Za-z]+\s+\d{4})/i
+    /(?:renewal date|renews on|expiry date|expiration date|valid until|policy end date|next renewal|coverage end date)\s*[:\-]?\s*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4}|[0-9]{4}[/-][0-9]{1,2}[/-][0-9]{1,2}|\d{1,2}\s+[A-Za-z]+\s+\d{4})/i
   )
   if (!labeled?.[1]) return undefined
   return parseDateCandidate(labeled[1]) ?? undefined
@@ -180,7 +252,7 @@ function fromFilename(fileName: string, error?: string): ExtractedPolicyDraft {
   const policyType = detectPolicyType(base)
   const policyName = base
     .replace(new RegExp(`\\b${insurer}\\b`, 'ig'), '')
-    .replace(/\b(policy|insurance|document|pdf|scan|copy)\b/gi, '')
+    .replace(/\b(policy|insurance|document|pdf|scan|copy|pack)\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
 
@@ -207,17 +279,20 @@ export function parseExtractedText(text: string, fileName: string): ExtractedPol
 
   const premium =
     detectMoney(compact, [
-      /(?:annual premium|yearly premium|premium(?:\s+amount)?(?:\s+per\s+year)?)\s*[:\-]?\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /(?:annual premium|yearly premium|yearly premium payable[^\d]{0,40}|total premium during the 1st year)\s*[:\-]?\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /Annual premium\s+Monthly premium\s+Total premium during the 1st year\s*(?:SGD\s*)?([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
       /(?:monthly premium|premium(?:\s+amount)?(?:\s+per\s+month)?)\s*[:\-]?\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
-      /\bpremium\b[^0-9]{0,20}(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /\bpremium\b[^0-9]{0,24}(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
     ]) ?? undefined
 
   const coverage =
     detectMoney(compact, [
-      /(?:sum assured|coverage amount|coverage|insured amount|benefit amount|limit of indemnity)\s*[:\-]?\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /(?:sum assured|sum insured|coverage amount|coverage|insured amount|benefit amount|limit of indemnity)\s*[:\-]?\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
+      /Accidental Death and Disability Benefit\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i,
     ]) ?? undefined
 
   const renewalDate = detectRenewalDate(compact)
+  const yearlySelected = /frequency of premium payment(?:\s+selected)?\s*yearly/i.test(compact)
 
   const filled = Boolean(insurer || policyName || premium || coverage || renewalDate || policyType)
 
@@ -229,34 +304,49 @@ export function parseExtractedText(text: string, fileName: string): ExtractedPol
     policyName,
     policyType,
     premium: premium?.amount,
-    premiumFrequency: premium?.frequency ?? (premium ? 'annual' : undefined),
+    premiumFrequency:
+      premium?.frequency ?? (yearlySelected ? 'annual' : premium ? 'annual' : undefined),
     coverageAmount: coverage?.amount ?? null,
     renewalDate: renewalDate ?? null,
   }
 }
 
 async function extractPdfText(file: File): Promise<string> {
-  const pdfjs = await import('pdfjs-dist')
+  ensurePdfPolyfills()
+
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker
 
   const data = new Uint8Array(await file.arrayBuffer())
-  const doc = await pdfjs.getDocument({ data }).promise
-  const maxPages = Math.min(doc.numPages, 4)
+  const doc = await pdfjs.getDocument({
+    data,
+    // Avoid noisy font fetch failures on static hosts
+    useSystemFonts: true,
+    disableFontFace: true,
+  }).promise
+
+  // Policy packs often put the schedule a few pages in.
+  const maxPages = Math.min(doc.numPages, 10)
   const chunks: string[] = []
 
   try {
     for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
       const page = await doc.getPage(pageNum)
       const content = await page.getTextContent()
-      const pageText = content.items
-        .map((item) => ('str' in item ? item.str : ''))
+      const items = Array.isArray(content.items) ? content.items : []
+      const pageText = items
+        .map((item) => (item && typeof item === 'object' && 'str' in item ? String(item.str) : ''))
         .filter(Boolean)
         .join(' ')
       chunks.push(pageText)
       page.cleanup()
     }
   } finally {
-    await doc.cleanup()
+    try {
+      await doc.cleanup()
+    } catch {
+      /* ignore cleanup races */
+    }
   }
 
   return chunks.join('\n')
