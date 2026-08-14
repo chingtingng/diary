@@ -2,8 +2,10 @@ import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import type { StorageMode } from '../lib/storage'
 import {
   APP_PLUGINS,
+  pluginForView,
   shouldHandleSpaClick,
   viewHref,
+  type AppPlugin,
   type AppView,
 } from '../lib/navigation'
 import { MenuDots } from './MenuDots'
@@ -22,7 +24,7 @@ interface HeaderProps {
   onOpenInsights?: () => void
 }
 
-function PluginIcon({ view }: { view: AppView }) {
+function PluginIcon({ plugin }: { plugin: AppPlugin }) {
   const common = {
     width: 18,
     height: 18,
@@ -31,7 +33,7 @@ function PluginIcon({ view }: { view: AppView }) {
     'aria-hidden': true as const,
   }
 
-  if (view === 'journal') {
+  if (plugin === 'journal') {
     return (
       <svg {...common}>
         <path
@@ -44,29 +46,7 @@ function PluginIcon({ view }: { view: AppView }) {
     )
   }
 
-  if (view === 'calendar') {
-    return (
-      <svg {...common}>
-        <rect
-          x="3.25"
-          y="4.25"
-          width="11.5"
-          height="10.5"
-          rx="2"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <path
-          d="M3.25 7.5h11.5M6.25 3v2.5M11.75 3v2.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    )
-  }
-
-  if (view === 'expenses') {
+  if (plugin === 'expenses') {
     return (
       <svg {...common}>
         <path
@@ -134,7 +114,9 @@ export function Header({
   const [pluginOpen, setPluginOpen] = useState(false)
   const pluginRef = useRef<HTMLDivElement>(null)
   const listId = useId()
-  const currentPlugin = APP_PLUGINS.find((plugin) => plugin.id === view) ?? APP_PLUGINS[0]
+  const activePlugin = pluginForView(view)
+  const currentPlugin =
+    APP_PLUGINS.find((plugin) => plugin.id === activePlugin) ?? APP_PLUGINS[0]
 
   useEffect(() => {
     if (!pluginOpen) return
@@ -154,7 +136,7 @@ export function Header({
     }
   }, [pluginOpen])
 
-  const go = (next: AppView) => (event: MouseEvent<HTMLAnchorElement>) => {
+  const go = (next: AppPlugin) => (event: MouseEvent<HTMLAnchorElement>) => {
     if (!shouldHandleSpaClick(event)) return
     event.preventDefault()
     setPluginOpen(false)
@@ -203,7 +185,7 @@ export function Header({
           {pluginOpen && (
             <ul className="plugin-select-menu" id={listId} role="listbox" aria-label="Plugins">
               {APP_PLUGINS.map((plugin) => {
-                const active = plugin.id === view
+                const active = plugin.id === activePlugin
                 return (
                   <li key={plugin.id} role="option" aria-selected={active}>
                     <a
@@ -213,7 +195,7 @@ export function Header({
                       onClick={go(plugin.id)}
                     >
                       <span className="plugin-select-icon">
-                        <PluginIcon view={plugin.id} />
+                        <PluginIcon plugin={plugin.id} />
                       </span>
                       <span>{plugin.label}</span>
                       {active && (

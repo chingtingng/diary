@@ -11,8 +11,11 @@ import { exportAndDownload } from './lib/export'
 import { exportExpensesAndDownload } from './lib/expenseExport'
 import {
   defaultLocation,
+  JOURNAL_TABS,
   locationToPath,
   parsePath,
+  shouldHandleSpaClick,
+  viewHref,
   type AppLocation,
   type AppView,
   type InsuranceScreen,
@@ -369,52 +372,75 @@ function App() {
               uploadRequestKey={uploadRequestKey}
             />
           </div>
-        ) : view === 'calendar' ? (
-          <div className="calendar-view">
-            <MoodCalendar
-              entries={entries}
-              selectedId={selectedId}
-              onSelectDate={handleCalendarSelect}
-            />
-          </div>
         ) : (
-          <>
-            <button
-              type="button"
-              className={`mobile-back${!showList ? ' visible' : ''}`}
-              data-haptic="select"
-              onClick={handleBackToList}
-              aria-hidden={showList}
-              hidden={showList}
-            >
-              ← Back to journal
-            </button>
+          <div className="journal-shell">
+            <nav className="journal-tabs view-tabs" aria-label="Journal">
+              {JOURNAL_TABS.map((tab) => (
+                <a
+                  key={tab.id}
+                  href={viewHref(tab.id)}
+                  className={view === tab.id ? 'active' : ''}
+                  aria-current={view === tab.id ? 'page' : undefined}
+                  data-haptic="select"
+                  onClick={(event) => {
+                    if (!shouldHandleSpaClick(event)) return
+                    event.preventDefault()
+                    void handleViewChange(tab.id)
+                  }}
+                >
+                  {tab.label}
+                </a>
+              ))}
+            </nav>
 
-            <div className={`layout${!showList ? ' has-back' : ''}`}>
-              <div className={`panel list-panel ${showList ? 'visible' : ''}`}>
-                {loading ? (
-                  <p className="loading-text">Loading entries…</p>
-                ) : (
-                  <EntryList
-                    entries={entries}
-                    selectedId={selectedId}
-                    onSelect={handleSelect}
-                    onNewEntry={handleNewEntry}
-                  />
-                )}
-              </div>
-
-              <div className={`panel editor-panel ${!showList ? 'visible' : ''}`}>
-                <EntryEditor
-                  key={selectedEntry?.id ?? 'empty'}
-                  entry={selectedEntry}
-                  onSave={handleSave}
-                  onDelete={handleDelete}
-                  onDraftChange={handleDraftChange}
+            {view === 'calendar' ? (
+              <div className="calendar-view">
+                <MoodCalendar
+                  entries={entries}
+                  selectedId={selectedId}
+                  onSelectDate={handleCalendarSelect}
                 />
               </div>
-            </div>
-          </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`mobile-back${!showList ? ' visible' : ''}`}
+                  data-haptic="select"
+                  onClick={handleBackToList}
+                  aria-hidden={showList}
+                  hidden={showList}
+                >
+                  ← Back to journal
+                </button>
+
+                <div className={`layout${!showList ? ' has-back' : ''}`}>
+                  <div className={`panel list-panel ${showList ? 'visible' : ''}`}>
+                    {loading ? (
+                      <p className="loading-text">Loading entries…</p>
+                    ) : (
+                      <EntryList
+                        entries={entries}
+                        selectedId={selectedId}
+                        onSelect={handleSelect}
+                        onNewEntry={handleNewEntry}
+                      />
+                    )}
+                  </div>
+
+                  <div className={`panel editor-panel ${!showList ? 'visible' : ''}`}>
+                    <EntryEditor
+                      key={selectedEntry?.id ?? 'empty'}
+                      entry={selectedEntry}
+                      onSave={handleSave}
+                      onDelete={handleDelete}
+                      onDraftChange={handleDraftChange}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </main>
     </div>

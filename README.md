@@ -24,7 +24,7 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
-Use the **plugin dropdown** beside the Daybook title to switch between Journal, Calendar, Expenses, and Insurance.
+Use the **plugin dropdown** beside the Daybook title to switch between Journal, Expenses, and Insurance. Inside Journal, use the **Journal / Calendar** tabs to move between writing and the mood calendar.
 
 ## Supabase Setup (Cloud Sync)
 

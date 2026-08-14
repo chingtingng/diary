@@ -1,8 +1,10 @@
 import type { MouseEvent } from 'react'
 
 export type AppView = 'journal' | 'calendar' | 'expenses' | 'insurance'
+export type AppPlugin = 'journal' | 'expenses' | 'insurance'
 export type ExpenseScreen = 'list' | 'insights' | 'budgets'
 export type InsuranceScreen = 'overview' | 'policies' | 'documents'
+export type JournalScreen = 'journal' | 'calendar'
 
 export interface AppLocation {
   view: AppView
@@ -10,11 +12,16 @@ export interface AppLocation {
   insuranceScreen: InsuranceScreen
 }
 
-export const APP_PLUGINS: { id: AppView; label: string }[] = [
+/** Top-level plugins shown in the header dropdown. Calendar lives under Journal. */
+export const APP_PLUGINS: { id: AppPlugin; label: string }[] = [
   { id: 'journal', label: 'Journal' },
-  { id: 'calendar', label: 'Calendar' },
   { id: 'expenses', label: 'Expenses' },
   { id: 'insurance', label: 'Insurance' },
+]
+
+export const JOURNAL_TABS: { id: JournalScreen; label: string }[] = [
+  { id: 'journal', label: 'Journal' },
+  { id: 'calendar', label: 'Calendar' },
 ]
 
 export const INSURANCE_TABS: { id: InsuranceScreen; label: string }[] = [
@@ -28,6 +35,13 @@ const VIEW_PATHS: Record<AppView, string> = {
   calendar: '/calendar',
   expenses: '/expenses',
   insurance: '/insurance',
+}
+
+export function pluginForView(view: AppView): AppPlugin {
+  if (view === 'calendar') return 'journal'
+  if (view === 'expenses') return 'expenses'
+  if (view === 'insurance') return 'insurance'
+  return 'journal'
 }
 
 function parseExpenseScreen(segment?: string): ExpenseScreen {
