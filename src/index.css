@@ -31,6 +31,7 @@
   --shadow: 0 10px 40px rgb(28 36 48 / 6%);
   --radius: 18px;
   --radius-sm: 12px;
+  --content-inset: 14px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --font-display: 'Glacial Indifference', 'Poppins', 'Montserrat', sans-serif;
@@ -446,7 +447,7 @@ button:focus {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 10px 14px 0;
+  padding: 10px var(--content-inset) 0;
 }
 
 .journal-tabs {
@@ -520,8 +521,7 @@ button:focus {
   box-shadow: var(--shadow);
 }
 
-.calendar-view,
-.expenses-shell {
+.calendar-view {
   margin: 10px;
   padding: 12px;
   overflow: auto;
@@ -545,6 +545,9 @@ button:focus {
 }
 
 .expenses-shell {
+  margin: 0;
+  padding: 10px var(--content-inset) calc(10px + var(--safe-bottom));
+  overflow: auto;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -2247,10 +2250,6 @@ button.year-board-cell:hover {
     padding: 14px;
   }
 
-  .expenses-shell {
-    padding: 0 14px 8px;
-  }
-
   .expenses-total-amount {
     font-size: 1.7rem;
   }
@@ -2789,11 +2788,6 @@ button.year-board-cell:hover {
 }
 
 @media (max-width: 520px) {
-  .expenses-shell {
-    margin: 8px;
-    padding: 0;
-  }
-
   .expense-summary-card {
     padding: 12px 14px 10px;
     gap: 9px;
@@ -2805,13 +2799,6 @@ button.year-board-cell:hover {
 
   .spending-chart-bars {
     min-height: 72px;
-  }
-}
-
-@media (max-width: 768px) {
-  .expenses-shell {
-    margin: 8px;
-    padding: 0;
   }
 }
 
@@ -2857,8 +2844,16 @@ button.year-board-cell:hover {
 
 .insurance-metrics {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1.4fr 1fr;
   gap: 14px 12px;
+}
+
+.insurance-metrics-simple {
+  grid-template-columns: 1.4fr 1fr;
+}
+
+.insurance-metrics-simple > :first-child {
+  grid-column: 1 / -1;
 }
 
 .insurance-metric {
@@ -3078,7 +3073,7 @@ button.year-board-cell:hover {
 
 .insurance-policy-card-meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -3238,9 +3233,5 @@ button.year-board-cell:hover {
 @media (max-width: 520px) {
   .insurance-metrics {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .insurance-policy-card-meta {
-    grid-template-columns: 1fr;
   }
 }

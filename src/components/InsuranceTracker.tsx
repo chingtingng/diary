@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { format, isToday, isYesterday, parseISO } from 'date-fns'
+import { format, isToday, isYesterday } from 'date-fns'
 import { atLocalNoon } from '../lib/dates'
 import {
   INSURANCE_TABS,
@@ -49,12 +49,6 @@ function formatMoney(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-}
-
-function formatShortDate(iso: string | null): string {
-  if (!iso) return '—'
-  const date = iso.length <= 10 ? parseISO(iso) : new Date(iso)
-  return format(date, 'd MMM yyyy')
 }
 
 function formatUploadedAt(iso: string): string {
@@ -164,26 +158,16 @@ export function InsuranceTracker({
     [activePolicies]
   )
 
-  const upcomingRenewals = useMemo(() => {
-    const now = Date.now()
-    return [...activePolicies]
-      .filter((p) => p.renewalDate)
-      .sort(
-        (a, b) =>
-          new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime()
-      )
-      .filter((p) => new Date(p.renewalDate!).getTime() >= now - 1000 * 60 * 60 * 24)
-      .slice(0, 4)
-  }, [activePolicies])
+  const totalCoverage = useMemo(
+    () =>
+      activePolicies.reduce(
+        (sum, policy) => sum + (policy.coverageAmount ?? 0),
+        0
+      ),
+    [activePolicies]
+  )
 
-  const nextPayment = upcomingRenewals[0]?.renewalDate ?? null
-
-  const expiringSoon = useMemo(() => {
-    const horizon = Date.now() + 1000 * 60 * 60 * 24 * 60
-    return activePolicies.filter(
-      (p) => p.renewalDate && new Date(p.renewalDate).getTime() <= horizon
-    ).length
-  }, [activePolicies])
+  const overviewPolicies = useMemo(() => activePolicies.slice(0, 4), [activePolicies])
 
   const recentDocuments = useMemo(() => documents.slice(0, 4), [documents])
 
@@ -574,29 +558,27 @@ export function InsuranceTracker({
       ) : screen === 'overview' ? (
         <>
           <section className="expense-summary-card insurance-summary-card">
-            <div className="insurance-metrics">
+            <div className="insurance-metrics insurance-metrics-simple">
               <div>
-                <p className="expenses-total-label">Total annual premium</p>
+                <p className="expenses-total-label">Yearly premiums</p>
                 <p className="expenses-total-amount">${formatMoney(totalAnnualPremium)}</p>
               </div>
               <div className="insurance-metric">
-                <span className="expenses-total-label">Active policies</span>
+                <span className="expenses-total-label">Policies</span>
                 <strong>{activePolicies.length}</strong>
               </div>
               <div className="insurance-metric">
-                <span className="expenses-total-label">Next payment</span>
-                <strong>{formatShortDate(nextPayment)}</strong>
-              </div>
-              <div className="insurance-metric">
-                <span className="expenses-total-label">Expiring soon</span>
-                <strong>{expiringSoon}</strong>
+                <span className="expenses-total-label">Total coverage</span>
+                <strong>
+                  {totalCoverage > 0 ? `$${formatMoney(totalCoverage)}` : '—'}
+                </strong>
               </div>
             </div>
           </section>
 
           <section className="insurance-section">
             <div className="insurance-section-heading">
-              <h2>Upcoming renewals</h2>
+              <h2>Your policies</h2>
               <button
                 type="button"
                 className="insurance-link"
@@ -606,11 +588,11 @@ export function InsuranceTracker({
                 View all
               </button>
             </div>
-            {upcomingRenewals.length === 0 ? (
-              <p className="insurance-empty">No upcoming renewals yet.</p>
+            {overviewPolicies.length === 0 ? (
+              <p className="insurance-empty">No policies yet. Add one to see coverage here.</p>
             ) : (
               <ul className="insurance-list">
-                {upcomingRenewals.map((policy) => (
+                {overviewPolicies.map((policy) => (
                   <li key={policy.id}>
                     <button
                       type="button"
@@ -618,11 +600,15 @@ export function InsuranceTracker({
                       data-haptic="select"
                       onClick={() => onScreenChange('policies')}
                     >
+                      <PolicyMark name={policy.insurer || policy.policyName} />
                       <div className="insurance-list-main">
                         <span className="insurance-list-title">{policy.policyName}</span>
                         <span className="insurance-list-meta">
-                          {formatShortDate(policy.renewalDate)} · ${formatMoney(policy.premium)}/
-                          {policy.premiumFrequency === 'monthly' ? 'mo' : 'yr'}
+                          {getPolicyTypeLabel(policy.policyType)}
+                          {policy.coverageAmount != null
+                            ? ` · $${formatMoney(policy.coverageAmount)} cover`
+                            : ''}
+                          {` · $${formatMoney(annualPremium(policy))}/yr`}
                         </span>
                       </div>
                       <AccordionChevron />
@@ -705,13 +691,6 @@ export function InsuranceTracker({
                   </div>
                   <div className="insurance-policy-card-meta">
                     <div>
-                      <span className="expenses-total-label">Premium</span>
-                      <strong>
-                        ${formatMoney(policy.premium)}/
-                        {policy.premiumFrequency === 'monthly' ? 'mo' : 'yr'}
-                      </strong>
-                    </div>
-                    <div>
                       <span className="expenses-total-label">Coverage</span>
                       <strong>
                         {policy.coverageAmount == null
@@ -720,8 +699,8 @@ export function InsuranceTracker({
                       </strong>
                     </div>
                     <div>
-                      <span className="expenses-total-label">Renewal</span>
-                      <strong>{formatShortDate(policy.renewalDate)}</strong>
+                      <span className="expenses-total-label">Yearly premium</span>
+                      <strong>${formatMoney(annualPremium(policy))}</strong>
                     </div>
                   </div>
                   <button
