@@ -102,9 +102,14 @@ export async function updateEntry(
 
   if (!supabase || !userId) throw new Error('Not authenticated')
 
+  const payload: Record<string, unknown> = {}
+  if (patch.content !== undefined) payload.content = patch.content
+  if (patch.mood !== undefined) payload.mood = patch.mood
+  if (patch.createdAt !== undefined) payload.created_at = patch.createdAt
+
   const { data, error } = await supabase
     .from('entries')
-    .update(patch)
+    .update(payload)
     .eq('id', id)
     .eq('user_id', userId)
     .select()

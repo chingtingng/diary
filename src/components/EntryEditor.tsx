@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import type { Entry, EntryPatch } from '../types/entry'
 import type { MoodId } from '../lib/moods'
 import { getMood } from '../lib/moods'
+import { atLocalNoon } from '../lib/dates'
+import { DateField } from './DateField'
 import { MoodPicker } from './MoodPicker'
 import { MenuDots } from './MenuDots'
 
@@ -19,12 +21,25 @@ interface EntryEditorProps {
   onDraftChange?: (draft: EntryDraft | null) => void
 }
 
+function withPreservedTime(day: Date, previousIso: string): string {
+  const previous = parseISO(previousIso)
+  const next = new Date(day)
+  next.setHours(
+    previous.getHours(),
+    previous.getMinutes(),
+    previous.getSeconds(),
+    previous.getMilliseconds()
+  )
+  return next.toISOString()
+}
+
 export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEditorProps) {
   const [content, setContent] = useState(entry?.content ?? '')
   const [mood, setMood] = useState<MoodId | null>(entry?.mood ?? null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editingDate, setEditingDate] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -39,11 +54,13 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
       setMood(entry.mood)
       setSaved(true)
       setMenuOpen(false)
+      setEditingDate(false)
       textareaRef.current?.focus()
     } else {
       setContent('')
       setMood(null)
       setMenuOpen(false)
+      setEditingDate(false)
     }
   }, [entry?.id])
 
@@ -82,6 +99,13 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
     setMood(next)
     setSaved(false)
     await persist({ mood: next })
+  }
+
+  const handleDateChange = async (next: Date) => {
+    if (!entry) return
+    setSaved(false)
+    await persist({ createdAt: withPreservedTime(next, entry.createdAt) })
+    setEditingDate(false)
   }
 
   useEffect(() => {
@@ -158,6 +182,17 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
               <div className="editor-menu" role="menu">
                 <button
                   type="button"
+                  className="menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setEditingDate(true)
+                  }}
+                >
+                  Edit date
+                </button>
+                <button
+                  type="button"
                   className="menu-item menu-item-danger"
                   role="menuitem"
                   onClick={handleDelete}
@@ -169,6 +204,26 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
           )}
         </div>
       </header>
+
+      {editingDate ? (
+        <div className="editor-date-edit">
+          <DateField
+            label="Entry date"
+            value={atLocalNoon(created)}
+            onChange={(next) => {
+              void handleDateChange(next)
+            }}
+          />
+          <button
+            type="button"
+            className="expense-form-cancel"
+            data-haptic="light"
+            onClick={() => setEditingDate(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       <MoodPicker value={mood} onChange={handleMood} />
 

@@ -49,7 +49,11 @@ export function useEntries(userId?: string) {
   const saveEntry = useCallback(
     async (id: string, patch: EntryPatch) => {
       const updated = await updateEntry(id, patch, userId)
-      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)))
+      setEntries((prev) =>
+        prev
+          .map((e) => (e.id === id ? updated : e))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      )
       return updated
     },
     [userId]

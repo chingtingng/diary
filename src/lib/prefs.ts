@@ -49,14 +49,14 @@ export function readExpenseFilter(): ExpenseFilter {
   try {
     const value = localStorage.getItem(EXPENSE_FILTER_KEY)
     if (value && EXPENSE_FILTERS.some((option) => option.id === value)) {
-      // Overview tabs no longer include All — fall back to Day.
-      if (value === 'all') return 'day'
+      // Overview tabs no longer include All — fall back to Week.
+      if (value === 'all') return 'week'
       return value as ExpenseFilter
     }
   } catch {
     /* ignore */
   }
-  return 'day'
+  return 'week'
 }
 
 export function writeExpenseFilter(filter: ExpenseFilter) {
