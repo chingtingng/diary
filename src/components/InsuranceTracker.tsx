@@ -244,6 +244,19 @@ export function InsuranceTracker({
     return map
   }, [documents])
 
+  const unlinkedDocuments = useMemo(
+    () => documents.filter((doc) => !doc.policyId),
+    [documents]
+  )
+
+  const hasUnlinkedDocuments = unlinkedDocuments.length > 0
+
+  useEffect(() => {
+    if (policyDocFilter === 'unlinked' && !hasUnlinkedDocuments) {
+      setPolicyDocFilter('all')
+    }
+  }, [hasUnlinkedDocuments, policyDocFilter])
+
   const filteredDocuments = useMemo(() => {
     const query = search.trim().toLowerCase()
     return documents.filter((doc) => {
@@ -1238,6 +1251,7 @@ export function InsuranceTracker({
                         </div>
                         <p>
                           {policy.insurer || 'Insurer'} · {getPolicyTypeLabel(policy.policyType)}
+                          {policy.policyNumber ? ` · No. ${policy.policyNumber}` : ''}
                         </p>
                       </div>
                     </button>
@@ -1325,46 +1339,61 @@ export function InsuranceTracker({
                       )}
                     </div>
                   </div>
-                  {policy.policyNumber ? (
-                    <div
-                      className="insurance-policy-number-row"
-                      onClick={(event) => event.stopPropagation()}
-                      onPointerDown={(event) => event.stopPropagation()}
-                    >
-                      <span className="expenses-total-label">Policy no.</span>
-                      <code className="insurance-policy-number">{policy.policyNumber}</code>
+                  <div
+                    className="insurance-policy-number-row"
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                  >
+                    <span className="expenses-total-label">Policy number</span>
+                    {policy.policyNumber ? (
+                      <>
+                        <code className="insurance-policy-number">{policy.policyNumber}</code>
+                        <button
+                          type="button"
+                          className="insurance-copy-icon-btn"
+                          data-haptic="select"
+                          aria-label={`Copy policy number ${policy.policyNumber}`}
+                          title="Copy policy number"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            void copyPolicyNumber(policy.policyNumber)
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                            <rect
+                              x="5.25"
+                              y="5.25"
+                              width="7.5"
+                              height="7.5"
+                              rx="1.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M3.5 10.5h-.25A1.75 1.75 0 0 1 1.5 8.75v-5A1.75 1.75 0 0 1 3.25 2h5A1.75 1.75 0 0 1 10 3.75V4"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        className="insurance-copy-icon-btn"
+                        className="insurance-policy-number-empty"
                         data-haptic="select"
-                        aria-label={`Copy policy number ${policy.policyNumber}`}
-                        title="Copy policy number"
                         onClick={(event) => {
                           event.preventDefault()
                           event.stopPropagation()
-                          void copyPolicyNumber(policy.policyNumber)
+                          startEditPolicy(policy)
                         }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                          <rect
-                            x="5.25"
-                            y="5.25"
-                            width="7.5"
-                            height="7.5"
-                            rx="1.5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                          />
-                          <path
-                            d="M3.5 10.5h-.25A1.75 1.75 0 0 1 1.5 8.75v-5A1.75 1.75 0 0 1 3.25 2h5A1.75 1.75 0 0 1 10 3.75V4"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                          />
-                        </svg>
+                        Add policy number
                       </button>
-                    </div>
-                  ) : null}
+                    )}
+                  </div>
                   <button
                     type="button"
                     className="insurance-policy-card-meta insurance-policy-card-meta-button"
@@ -1481,12 +1510,14 @@ export function InsuranceTracker({
               value={policyDocFilter}
               options={[
                 { id: 'all', label: 'All policies' },
-                { id: 'unlinked', label: 'Unlinked' },
+                ...(hasUnlinkedDocuments ? [{ id: 'unlinked', label: 'Unlinked' }] : []),
                 ...policies.map((policy) => ({
                   id: policy.id,
-                  label: policy.insurer
-                    ? `${policy.policyName} · ${policy.insurer}`
-                    : policy.policyName,
+                  label: policy.policyNumber
+                    ? `${policy.policyName} · ${policy.policyNumber}`
+                    : policy.insurer
+                      ? `${policy.policyName} · ${policy.insurer}`
+                      : policy.policyName,
                 })),
               ]}
               onChange={setPolicyDocFilter}

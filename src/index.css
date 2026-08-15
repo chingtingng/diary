@@ -3365,6 +3365,15 @@ button.year-board-cell:hover {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
 }
 
+.insurance-policy-number-empty {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .insurance-copy-icon-btn {
   flex-shrink: 0;
   display: inline-grid;
