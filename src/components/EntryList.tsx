@@ -46,7 +46,6 @@ export function EntryList({ entries, selectedId, onSelect, onNewEntry }: EntryLi
                 <button
                   type="button"
                   className={`entry-item ${selectedId === entry.id ? 'selected' : ''}`}
-                  data-haptic="select"
                   onClick={() => onSelect(entry.id)}
                   style={
                     mood

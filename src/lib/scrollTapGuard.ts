@@ -13,14 +13,8 @@ const CLICK_BLOCK_MS = 80
 /**
  * App-wide: let a finger-drag scroll instead of activating the control it started on.
  *
- * Large list rows (policies, expenses, journal pages, …) use `[data-haptic]`, and on iOS
- * @haptics/core covers them with an invisible checkbox-switch overlay. Touches land on that
- * overlay, so a scroll that begins on a row is treated as a tap and opens the item.
- *
- * This guard:
- * 1. Treats movement past tap slop as a scroll
- * 2. Releases the haptic overlay (`pointer-events: none`) so the page can keep scrolling
- * 3. Suppresses the synthetic click / haptic re-dispatch that would otherwise fire on touchend
+ * List rows no longer use `[data-haptic]` (haptic switch overlays fight scrolling).
+ * This guard still covers remaining interactive controls and any leftover overlays.
  */
 export function installScrollTapGuard() {
   if (typeof document === 'undefined') return () => {}

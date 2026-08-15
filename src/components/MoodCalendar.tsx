@@ -243,7 +243,6 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
                 <button
                   key={key}
                   type="button"
-                  data-haptic="select"
                   className={[
                     'calendar-day',
                     mode === 'board' ? 'board-day' : '',
@@ -324,7 +323,6 @@ export function MoodCalendar({ entries, onSelectDate, selectedId }: MoodCalendar
                     <button
                       key={dayNum}
                       type="button"
-                      data-haptic="select"
                       className={[
                         'year-board-cell',
                         mood ? 'has-mood' : dayEntries.length ? 'has-entry' : '',

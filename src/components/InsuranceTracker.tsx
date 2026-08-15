@@ -1156,7 +1156,6 @@ export function InsuranceTracker({
                     <button
                       type="button"
                       className="insurance-list-row"
-                      data-haptic="select"
                       onClick={() => onScreenChange('policies')}
                     >
                       <PolicyMark name={policy.insurer || policy.policyName} />
@@ -1199,7 +1198,6 @@ export function InsuranceTracker({
                     <button
                       type="button"
                       className="insurance-list-row"
-                      data-haptic="select"
                       onClick={() => handleOpenDoc(doc)}
                     >
                       <FileTypeIcon type={doc.fileType} />
@@ -1238,7 +1236,6 @@ export function InsuranceTracker({
                     <button
                       type="button"
                       className="insurance-policy-card-main"
-                      data-haptic="select"
                       onClick={() => startEditPolicy(policy)}
                     >
                       <PolicyMark name={policy.insurer || policy.policyName} />
@@ -1383,7 +1380,6 @@ export function InsuranceTracker({
                       <button
                         type="button"
                         className="insurance-policy-number-empty"
-                        data-haptic="select"
                         onClick={(event) => {
                           event.preventDefault()
                           event.stopPropagation()
@@ -1397,7 +1393,6 @@ export function InsuranceTracker({
                   <button
                     type="button"
                     className="insurance-policy-card-meta insurance-policy-card-meta-button"
-                    data-haptic="select"
                     onClick={() => startEditPolicy(policy)}
                   >
                     <div>
@@ -1456,7 +1451,6 @@ export function InsuranceTracker({
                                 <button
                                   type="button"
                                   className="insurance-policy-doc-row"
-                                  data-haptic="select"
                                   onClick={() => void handleOpenDoc(doc)}
                                 >
                                   <FileTypeIcon type={doc.fileType} />
@@ -1620,7 +1614,6 @@ export function InsuranceTracker({
                       <button
                         type="button"
                         className="insurance-doc-card-main"
-                        data-haptic="select"
                         onClick={() => handleOpenDoc(doc)}
                       >
                         <FileTypeIcon type={doc.fileType} />
