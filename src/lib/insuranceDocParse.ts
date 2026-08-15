@@ -346,14 +346,32 @@ function detectInsurer(text: string): string | undefined {
 
 function detectPolicyType(policyName: string | undefined, text: string): PolicyTypeId | undefined {
   const name = policyName ?? ''
+  // Name rules first — product titles like “Life PA” are more reliable than body text.
   const nameRules: { id: PolicyTypeId; pattern: RegExp }[] = [
     { id: 'travel', pattern: /\btravel\b/i },
     { id: 'auto', pattern: /\b(?:auto|motor|car)\b/i },
     { id: 'home', pattern: /\b(?:home|house|householder|fire)\b/i },
-    { id: 'health', pattern: /\b(?:health|hospital|medical|medi|shield)\b/i },
-    { id: 'life', pattern: /\blife\s*pa\b|\bwhole life\b|\bterm life\b|\bendowment\b|\blegacy\b/i },
-    { id: 'disability', pattern: /\b(?:personal accident|\bpa\b|accidental|disability|income protection|critical illness)\b/i },
-    { id: 'life', pattern: /\b(?:life|term|secure)\b/i },
+    // “Life PA” / “Personal Accident” are PA products, not life or disability.
+    {
+      id: 'personal_accident',
+      pattern: /\blife\s*pa\b|\bpersonal\s+accident\b|\bpa\s+insurance\b|\baccidental\b/i,
+    },
+    {
+      id: 'critical_illness',
+      pattern: /\bcritical\s+illness\b|\bearly\s+ci\b|\bci\s+(?:cover|rider|plan)\b|\bdread\s+disease\b/i,
+    },
+    {
+      id: 'disability',
+      pattern: /\bdisability\b|\bincome\s+protection\b|\btotal\s+(?:and\s+)?permanent\s+disability\b|\btpd\b/i,
+    },
+    {
+      id: 'health',
+      pattern: /\b(?:health|hospital|medical|medi\s?shield|integrated\s+shield)\b/i,
+    },
+    {
+      id: 'life',
+      pattern: /\bwhole\s+life\b|\bterm\s+life\b|\bendowment\b|\blegacy\b|\blife\s+insurance\b|\blife\b/i,
+    },
   ]
   for (const rule of nameRules) {
     if (rule.pattern.test(name)) return rule.id
@@ -363,9 +381,35 @@ function detectPolicyType(policyName: string | undefined, text: string): PolicyT
     { id: 'travel', patterns: [/\btravel insurance\b/i] },
     { id: 'auto', patterns: [/\b(?:motor|car) insurance\b/i] },
     { id: 'home', patterns: [/\b(?:home|householder|fire) insurance\b/i] },
-    { id: 'disability', patterns: [/\bpersonal accident\b/i, /\baccidental death\b/i, /\bincome protection\b/i] },
-    { id: 'health', patterns: [/\bintegrated shield\b/i, /\bhospital(?:isation)?\b/i, /\bmedi\s?shield\b/i] },
-    { id: 'life', patterns: [/\bwhole life\b/i, /\bterm life\b/i, /\blife insurance\b/i, /\blife insured\b/i] },
+    {
+      id: 'personal_accident',
+      patterns: [
+        /\bpersonal accident\b/i,
+        /\blife\s*pa\b/i,
+        /\baccidental death\b/i,
+        /\baccidental (?:permanent )?disability\b/i,
+      ],
+    },
+    {
+      id: 'critical_illness',
+      patterns: [/\bcritical illness\b/i, /\bdread disease\b/i],
+    },
+    {
+      id: 'disability',
+      patterns: [
+        /\bincome protection\b/i,
+        /\bdisability income\b/i,
+        /\btotal (?:and )?permanent disability\b/i,
+      ],
+    },
+    {
+      id: 'health',
+      patterns: [/\bintegrated shield\b/i, /\bhospital(?:isation)?\b/i, /\bmedi\s?shield\b/i],
+    },
+    {
+      id: 'life',
+      patterns: [/\bwhole life\b/i, /\bterm life\b/i, /\blife insurance\b/i, /\blife insured\b/i],
+    },
   ]
   for (const rule of textRules) {
     if (rule.patterns.some((pattern) => pattern.test(text))) return rule.id

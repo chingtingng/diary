@@ -1,10 +1,12 @@
 export const POLICY_TYPES = [
-  { id: 'health', label: 'Health' },
   { id: 'life', label: 'Life' },
+  { id: 'health', label: 'Health' },
+  { id: 'critical_illness', label: 'Critical illness' },
+  { id: 'personal_accident', label: 'Personal accident' },
+  { id: 'disability', label: 'Disability' },
+  { id: 'travel', label: 'Travel' },
   { id: 'auto', label: 'Auto' },
   { id: 'home', label: 'Home' },
-  { id: 'travel', label: 'Travel' },
-  { id: 'disability', label: 'Disability' },
   { id: 'other', label: 'Other' },
 ] as const
 
