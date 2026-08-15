@@ -53,9 +53,14 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100dvh;
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
-  min-height: 100dvh;
+  height: 100%;
   background:
     radial-gradient(1200px 600px at 10% -10%, #d9eef8 0%, transparent 55%),
     radial-gradient(900px 500px at 100% 0%, #e4f3ea 0%, transparent 45%),
@@ -64,7 +69,8 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 100%;
 }
 
 button,
@@ -121,9 +127,11 @@ button:focus {
 
 /* App shell */
 .app {
-  min-height: 100dvh;
+  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -442,7 +450,11 @@ button:focus {
 /* Settings */
 .settings-view {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
   padding: 28px 22px calc(28px + var(--safe-bottom));
   max-width: 560px;
   width: 100%;
@@ -555,6 +567,7 @@ button:focus {
 /* Main */
 .main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -643,7 +656,10 @@ button:focus {
 .calendar-view {
   margin: 10px;
   padding: 12px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .journal-shell .calendar-view {
@@ -667,7 +683,10 @@ button:focus {
 .expenses-shell {
   margin: 0;
   padding: 10px var(--content-inset) calc(10px + var(--safe-bottom));
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -1579,8 +1598,12 @@ button:focus {
   list-style: none;
   margin: 0;
   padding: 0 12px 16px;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
   flex: 1;
+  min-height: 0;
 }
 
 .entry-item {
