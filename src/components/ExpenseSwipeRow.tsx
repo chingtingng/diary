@@ -3,7 +3,7 @@ import { haptic } from '../lib/haptics'
 
 const REVEAL = 72
 const OPEN_AT = 36
-const AXIS_LOCK = 8
+const AXIS_LOCK = 12
 
 interface ExpenseSwipeRowProps {
   revealed: boolean

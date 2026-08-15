@@ -163,7 +163,8 @@ button:focus {
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y;
+  /* Allow scrolling (and expense swipe) when the gesture starts on a haptic row */
+  touch-action: manipulation;
 }
 
 [data-haptic-overlay]:focus,
