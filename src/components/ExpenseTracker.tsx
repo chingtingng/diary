@@ -105,7 +105,6 @@ function ExpenseTxnRow({
       <button
         type="button"
         className="expense-item expense-item-button expense-txn-row"
-        data-haptic="select"
         tabIndex={tabIndex}
         onClick={() => {
           if (revealed) onRevealedChange(false)
@@ -463,7 +462,6 @@ export function ExpenseTracker({
                     <button
                       type="button"
                       className="expense-week-row"
-                      data-haptic="select"
                       aria-expanded={expanded}
                       onClick={() => toggleWeekDay(group.key)}
                     >
@@ -515,7 +513,6 @@ export function ExpenseTracker({
                     <button
                       type="button"
                       className="expense-category-row"
-                      data-haptic="select"
                       aria-expanded={expanded}
                       onClick={() => toggleCategory(slice.id)}
                     >
@@ -576,7 +573,6 @@ export function ExpenseTracker({
                   <button
                     type="button"
                     className="expense-month-row"
-                    data-haptic="select"
                     onClick={() => {
                       setPeriod('month')
                       writeExpenseFilter('month')
