@@ -37,48 +37,56 @@ function PluginIcon({ plugin }: { plugin: AppPlugin }) {
   }
 
   if (plugin === 'journal') {
+    // Open daybook / journal
     return (
       <svg {...common}>
         <path
-          d="M4.5 3.25h7.25A1.75 1.75 0 0 1 13.5 5v10.25L9 13.1l-4.5 2.15V5A1.75 1.75 0 0 1 4.5 3.25Z"
+          d="M9 3.4C7.1 2.55 4.55 2.2 2.4 2.7v11.1c2.15-.35 4.5.2 6.6 1 2.1-.8 4.45-1.35 6.6-1V2.7C13.45 2.2 10.9 2.55 9 3.4Z"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
+        <path d="M9 3.55v11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     )
   }
 
   if (plugin === 'expenses') {
+    // Receipt / spending log
     return (
       <svg {...common}>
         <path
-          d="M4 13.5 7.2 9.8l2.3 2.1L14 6.5"
+          d="M5 2.75h8v12.5l-1.35-1-1.35 1-1.3-1-1.3 1-1.35-1-1.35 1V2.75Z"
           stroke="currentColor"
           strokeWidth="1.5"
-          strokeLinecap="round"
           strokeLinejoin="round"
         />
         <path
-          d="M11.5 6.5H14v2.5"
+          d="M7 6h4M7 8.75h4M7 11.5h2.25"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
-          strokeLinejoin="round"
         />
       </svg>
     )
   }
 
+  // Shield — insurance / protection
   return (
     <svg {...common}>
       <path
-        d="M9 3.4c-2.4 0-4.35 1.75-4.35 4.35 0 3.2 3.55 6.35 4.1 6.8a.4.4 0 0 0 .5 0c.55-.45 4.1-3.6 4.1-6.8C13.35 5.15 11.4 3.4 9 3.4Z"
+        d="M9 2.6 14.25 4.4v4.35c0 3.2-2.15 5.45-5.25 6.65C5.9 14.2 3.75 11.95 3.75 8.75V4.4L9 2.6Z"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
-      <circle cx="9" cy="7.6" r="1.35" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M6.85 8.55 8.35 10l2.9-3.35"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
