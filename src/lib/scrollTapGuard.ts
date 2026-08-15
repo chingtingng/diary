@@ -8,7 +8,7 @@ const TAP_SLOP = 12
 const INTERACTIVE =
   'input, textarea, select, button, a, [data-haptic], [data-haptic-overlay], [contenteditable="true"], [role="button"]'
 
-const CLICK_BLOCK_MS = 400
+const CLICK_BLOCK_MS = 80
 
 /**
  * App-wide: let a finger-drag scroll instead of activating the control it started on.
@@ -49,6 +49,8 @@ export function installScrollTapGuard() {
       disarmClickBlock()
     }
     document.addEventListener('click', clickBlock, true)
+    // Only swallow the synthetic click from this scroll gesture — keep the
+    // window short so the next real tap still gets haptics + activation.
     clickTimer = window.setTimeout(disarmClickBlock, CLICK_BLOCK_MS)
   }
 
