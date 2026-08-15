@@ -3429,9 +3429,23 @@ button.year-board-cell:hover {
 .insurance-leave-actions {
   display: flex;
   gap: 10px;
-  justify-content: flex-end;
-  align-items: center;
+  justify-content: stretch;
+  align-items: stretch;
   margin-top: 4px;
+}
+
+.insurance-leave-actions > button {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  width: auto;
+  height: auto;
+  min-height: 42px;
+  max-height: none;
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .insurance-leave-save {
