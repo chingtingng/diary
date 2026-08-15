@@ -30,6 +30,7 @@ export function rowToEntry(row: EntryRow): Entry {
 export type EntryPatch = {
   content?: string
   mood?: MoodId | null
+  createdAt?: string
 }
 
 /** Apple Notes-style: no text and no mood means the page was never started. */

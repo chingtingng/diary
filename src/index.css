@@ -606,7 +606,7 @@ button:focus {
 .mobile-back {
   display: none;
   align-self: flex-start;
-  padding: 4px 12px 0 30px;
+  padding: 12px 12px 0 30px;
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
@@ -660,6 +660,7 @@ button:focus {
 
 .journal-shell .mobile-back {
   padding-left: 4px;
+  padding-top: 14px;
 }
 
 .expenses-shell {
@@ -2341,7 +2342,7 @@ button.year-board-cell:hover {
   }
 
   .layout.has-back {
-    padding-top: 6px;
+    padding-top: 10px;
   }
 
   .new-entry-btn {
@@ -3279,6 +3280,79 @@ button.year-board-cell:hover {
 .insurance-copy-btn:hover {
   color: var(--ink);
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.insurance-copy-icon-btn {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgb(255 255 255 / 75%);
+  color: var(--ink-soft);
+}
+
+.insurance-copy-icon-btn:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.insurance-leave-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(20 28 34 / 42%);
+}
+
+.insurance-leave-dialog {
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  border-radius: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.insurance-leave-dialog h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+
+.insurance-leave-dialog p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.insurance-leave-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.insurance-leave-save {
+  width: auto;
+  margin: 0;
+  padding: 10px 16px;
+}
+
+.editor-date-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 4px 8px;
 }
 
 .insurance-policy-card-meta > div {

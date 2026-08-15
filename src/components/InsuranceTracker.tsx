@@ -166,6 +166,7 @@ export function InsuranceTracker({
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
   const [policyMenuId, setPolicyMenuId] = useState<string | null>(null)
+  const [pendingScreen, setPendingScreen] = useState<InsuranceScreen | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -373,18 +374,18 @@ export function InsuranceTracker({
     }
   }
 
-  const handleUpload = async () => {
+  const handleUpload = async (navigateTo?: InsuranceScreen) => {
     if (!file) {
       setError('Choose a PDF or image to upload.')
-      return
+      return false
     }
     if (attachMode === 'existing' && !linkPolicyId) {
       setError('Choose which policy this document belongs to.')
-      return
+      return false
     }
     if (attachMode === 'new' && !uploadPolicy.policyName.trim()) {
       setError('Policy name is required when creating a policy.')
-      return
+      return false
     }
 
     setSubmitting(true)
@@ -414,9 +415,13 @@ export function InsuranceTracker({
       await onUploadDocument(input)
       resetUpload()
       setShowUpload(false)
-      onScreenChange(attachMode === 'new' ? 'policies' : 'documents')
+      onScreenChange(
+        navigateTo ?? (attachMode === 'new' ? 'policies' : 'documents')
+      )
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err || 'Upload failed'))
+      return false
     } finally {
       setSubmitting(false)
     }
@@ -540,6 +545,83 @@ export function InsuranceTracker({
     }
   }
 
+  const leaveEditingTo = (next: InsuranceScreen) => {
+    resetUpload()
+    setShowUpload(false)
+    setShowPolicyForm(false)
+    setEditingPolicyId(null)
+    setPolicyDraft(EMPTY_POLICY)
+    setRenewalDate(atLocalNoon(new Date()))
+    setPendingScreen(null)
+    setError(null)
+    onScreenChange(next)
+  }
+
+  const requestScreenChange = (next: InsuranceScreen) => {
+    if (next === screen && !showPolicyForm && !showUpload) return
+    if (showPolicyForm || showUpload) {
+      setPendingScreen(next)
+      return
+    }
+    onScreenChange(next)
+  }
+
+  const handleKeepEditing = () => {
+    setPendingScreen(null)
+  }
+
+  const handleSaveAndLeave = async () => {
+    if (!pendingScreen) return
+    const next = pendingScreen
+
+    if (showPolicyForm) {
+      if (!policyDraft.policyName.trim()) {
+        setError('Policy name is required.')
+        setPendingScreen(null)
+        return
+      }
+      setSubmitting(true)
+      setError(null)
+      const payload: InsurancePolicyInput = {
+        ...policyDraft,
+        insurer: policyDraft.insurer.trim(),
+        policyName: policyDraft.policyName.trim(),
+        policyNumber: policyDraft.policyNumber?.trim() ?? '',
+        renewalDate: toIsoDate(renewalDate),
+        premium: Number(policyDraft.premium) || 0,
+        coverageAmount:
+          policyDraft.coverageAmount === null || Number.isNaN(Number(policyDraft.coverageAmount))
+            ? null
+            : Number(policyDraft.coverageAmount),
+        notes: policyDraft.notes?.trim() ?? '',
+      }
+      try {
+        if (editingPolicyId) {
+          await onSavePolicy(editingPolicyId, payload)
+        } else {
+          await onAddPolicy(payload)
+        }
+        leaveEditingTo(next)
+      } catch (err) {
+        setPendingScreen(null)
+        setError(err instanceof Error ? err.message : 'Could not save policy')
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
+
+    if (showUpload) {
+      if (file) {
+        const ok = await handleUpload(next)
+        if (ok) setPendingScreen(null)
+        else setPendingScreen(null)
+        return
+      }
+      leaveEditingTo(next)
+    }
+  }
+
   return (
     <div className="expenses-view insurance-view">
       <div className="insurance-tabs expense-period-tabs" role="tablist" aria-label="Insurance">
@@ -548,19 +630,57 @@ export function InsuranceTracker({
             key={tab.id}
             href={insuranceHref(tab.id)}
             role="tab"
-            aria-selected={screen === tab.id}
-            className={screen === tab.id ? 'active' : ''}
+            aria-selected={screen === tab.id && !showPolicyForm && !showUpload}
+            className={screen === tab.id && !showPolicyForm && !showUpload ? 'active' : ''}
             data-haptic="select"
             onClick={(event) => {
               if (!shouldHandleSpaClick(event)) return
               event.preventDefault()
-              onScreenChange(tab.id)
+              requestScreenChange(tab.id)
             }}
           >
             {tab.label}
           </a>
         ))}
       </div>
+
+      {pendingScreen ? (
+        <div className="insurance-leave-overlay" role="presentation">
+          <div
+            className="insurance-leave-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="insurance-leave-title"
+          >
+            <h2 id="insurance-leave-title">Save your changes?</h2>
+            <p>
+              You’re still editing. Save before opening{' '}
+              {INSURANCE_TABS.find((tab) => tab.id === pendingScreen)?.label ?? 'that tab'}, or keep
+              editing here.
+            </p>
+            <div className="insurance-leave-actions">
+              <button
+                type="button"
+                className="header-btn"
+                data-haptic="light"
+                disabled={submitting}
+                onClick={handleKeepEditing}
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                className="expense-add-toggle insurance-leave-save"
+                data-haptic="select"
+                disabled={submitting}
+                onClick={() => void handleSaveAndLeave()}
+              >
+                {submitting ? 'Saving…' : 'Save & continue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {error && <p className="expense-error insurance-error-banner">{error}</p>}
 
@@ -769,7 +889,9 @@ export function InsuranceTracker({
             className="expense-add-toggle"
             data-haptic="light"
             disabled={submitting || extracting}
-            onClick={handleUpload}
+            onClick={() => {
+              void handleUpload()
+            }}
           >
             {submitting ? 'Uploading…' : 'Upload document'}
           </button>
@@ -1121,16 +1243,42 @@ export function InsuranceTracker({
                     </div>
                   </div>
                   {policy.policyNumber ? (
-                    <div className="insurance-policy-number-row">
+                    <div
+                      className="insurance-policy-number-row"
+                      onClick={(event) => event.stopPropagation()}
+                      onPointerDown={(event) => event.stopPropagation()}
+                    >
                       <span className="expenses-total-label">Policy no.</span>
                       <code className="insurance-policy-number">{policy.policyNumber}</code>
                       <button
                         type="button"
-                        className="insurance-copy-btn"
+                        className="insurance-copy-icon-btn"
                         data-haptic="select"
-                        onClick={() => void copyPolicyNumber(policy.policyNumber)}
+                        aria-label={`Copy policy number ${policy.policyNumber}`}
+                        title="Copy policy number"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          void copyPolicyNumber(policy.policyNumber)
+                        }}
                       >
-                        Copy
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                          <rect
+                            x="5.25"
+                            y="5.25"
+                            width="7.5"
+                            height="7.5"
+                            rx="1.5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          />
+                          <path
+                            d="M3.5 10.5h-.25A1.75 1.75 0 0 1 1.5 8.75v-5A1.75 1.75 0 0 1 3.25 2h5A1.75 1.75 0 0 1 10 3.75V4"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                       </button>
                     </div>
                   ) : null}
