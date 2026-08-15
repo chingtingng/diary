@@ -166,6 +166,28 @@ function isMissingBucketError(message: string): boolean {
   )
 }
 
+function isPolicySchemaError(message: string): boolean {
+  return (
+    /policy_type_check|policy_number|check constraint|violates check constraint|column .*policy_number.* does not exist/i.test(
+      message
+    )
+  )
+}
+
+function policySchemaHint(message: string, fallback: string): Error {
+  if (isMissingRelationError(message)) {
+    return new Error(
+      'Insurance tables are missing in Supabase. Run supabase/migrations/007_create_insurance.sql in the SQL editor, then try again.'
+    )
+  }
+  if (isPolicySchemaError(message)) {
+    return new Error(
+      'Your Supabase insurance schema is out of date. Run supabase/migrations/008_policy_number_and_types.sql in the SQL editor so Personal accident / Critical illness and policy numbers are allowed, then try again.'
+    )
+  }
+  return new Error(message || fallback)
+}
+
 function guessContentType(file: File): string {
   if (file.type) return file.type
   const name = file.name.toLowerCase()
@@ -277,13 +299,7 @@ export async function createPolicy(
     .single()
 
   if (error) {
-    const message = errorMessage(error, 'Could not save policy')
-    if (isMissingRelationError(message)) {
-      throw new Error(
-        'Insurance tables are missing in Supabase. Run supabase/migrations/007_create_insurance.sql in the SQL editor, then try again.'
-      )
-    }
-    throw new Error(message)
+    throw policySchemaHint(errorMessage(error, 'Could not save policy'), 'Could not save policy')
   }
   return rowToPolicy(data as InsurancePolicyRow)
 }
@@ -338,7 +354,9 @@ export async function updatePolicy(
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    throw policySchemaHint(errorMessage(error, 'Could not save policy'), 'Could not save policy')
+  }
   return rowToPolicy(data as InsurancePolicyRow)
 }
 
