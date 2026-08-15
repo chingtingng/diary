@@ -1570,7 +1570,7 @@ export function InsuranceTracker({
           ) : (
             <ul className="insurance-list insurance-doc-list">
               {filteredDocuments.map((doc) => (
-                <li key={doc.id} className="insurance-doc-row-wrap">
+                <li key={doc.id} className="insurance-doc-card">
                   {renamingId === doc.id ? (
                     <form
                       className="insurance-rename-form"
@@ -1619,7 +1619,7 @@ export function InsuranceTracker({
                     <>
                       <button
                         type="button"
-                        className="insurance-list-row"
+                        className="insurance-doc-card-main"
                         data-haptic="select"
                         onClick={() => handleOpenDoc(doc)}
                       >

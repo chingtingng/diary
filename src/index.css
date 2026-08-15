@@ -3513,21 +3513,45 @@ button.year-board-cell:hover {
   color: white;
 }
 
-.insurance-doc-row-wrap {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+.insurance-doc-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 10px 12px 14px;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 88%);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 16px rgb(28 36 48 / 4%);
+}
+
+.insurance-doc-card-main {
+  display: flex;
   align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
 }
 
 .insurance-doc-menu {
   position: relative;
+  flex-shrink: 0;
+  margin-top: -2px;
 }
 
 .insurance-doc-menu-panel {
   right: 0;
   left: auto;
   min-width: 160px;
+}
+
+.insurance-doc-card > .insurance-rename-form {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .insurance-rename-form {
