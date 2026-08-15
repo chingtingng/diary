@@ -47,6 +47,7 @@ interface InsuranceTrackerProps {
   onUploadDocument: (input: InsuranceDocumentInput) => Promise<InsuranceDocument>
   onDeleteDocument: (id: string) => Promise<void>
   onRenameDocument: (id: string, fileName: string) => Promise<InsuranceDocument>
+  onLinkDocument: (id: string, policyId: string | null) => Promise<InsuranceDocument>
   onOpenDocument: (document: InsuranceDocument) => Promise<string | null>
   uploadRequestKey?: number
 }
@@ -153,6 +154,7 @@ export function InsuranceTracker({
   onUploadDocument,
   onDeleteDocument,
   onRenameDocument,
+  onLinkDocument,
   onOpenDocument,
   uploadRequestKey = 0,
 }: InsuranceTrackerProps) {
@@ -161,7 +163,9 @@ export function InsuranceTracker({
   const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [docFilter, setDocFilter] = useState<DocumentFilter>('all')
+  const [policyDocFilter, setPolicyDocFilter] = useState<string>('all')
   const [docMenuId, setDocMenuId] = useState<string | null>(null)
+  const [linkingDocId, setLinkingDocId] = useState<string | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
@@ -199,8 +203,11 @@ export function InsuranceTracker({
 
   useEffect(() => {
     if (!showUpload) return
-    setAttachMode((current) => (current === 'none' ? 'new' : current))
-  }, [showUpload])
+    setAttachMode((current) => {
+      if (current !== 'none') return current
+      return policies.length > 0 ? 'existing' : 'new'
+    })
+  }, [showUpload, policies.length])
 
   const activePolicies = useMemo(
     () => policies.filter((p) => p.status === 'active'),
@@ -225,24 +232,71 @@ export function InsuranceTracker({
 
   const recentDocuments = useMemo(() => documents.slice(0, 4), [documents])
 
+  const documentsByPolicyId = useMemo(() => {
+    const map = new Map<string, InsuranceDocument[]>()
+    for (const doc of documents) {
+      if (!doc.policyId) continue
+      const list = map.get(doc.policyId) ?? []
+      list.push(doc)
+      map.set(doc.policyId, list)
+    }
+    return map
+  }, [documents])
+
   const filteredDocuments = useMemo(() => {
     const query = search.trim().toLowerCase()
     return documents.filter((doc) => {
       if (docFilter !== 'all' && doc.fileType !== docFilter) return false
+      if (policyDocFilter === 'unlinked' && doc.policyId) return false
+      if (
+        policyDocFilter !== 'all' &&
+        policyDocFilter !== 'unlinked' &&
+        doc.policyId !== policyDocFilter
+      ) {
+        return false
+      }
       if (!query) return true
       return (
         doc.fileName.toLowerCase().includes(query) ||
         (doc.insurer ?? '').toLowerCase().includes(query) ||
-        (doc.policyName ?? '').toLowerCase().includes(query)
+        (doc.policyName ?? '').toLowerCase().includes(query) ||
+        (doc.policyId
+          ? (policies.find((p) => p.id === doc.policyId)?.policyNumber ?? '')
+              .toLowerCase()
+              .includes(query)
+          : false)
       )
     })
-  }, [documents, docFilter, search])
+  }, [documents, docFilter, policyDocFilter, policies, search])
 
   const openUpload = () => {
     setError(null)
     setShowUpload(true)
     setShowPolicyForm(false)
-    setAttachMode('new')
+    if (policies.length > 0) {
+      setAttachMode('existing')
+      setLinkPolicyId(policies[0]?.id ?? '')
+    } else {
+      setAttachMode('new')
+      setLinkPolicyId('')
+    }
+  }
+
+  const openUploadForPolicy = (policyId: string) => {
+    setError(null)
+    setShowPolicyForm(false)
+    setPolicyMenuId(null)
+    setShowUpload(true)
+    setAttachMode('existing')
+    setLinkPolicyId(policyId)
+  }
+
+  const viewPolicyDocuments = (policyId: string) => {
+    setPolicyMenuId(null)
+    setPolicyDocFilter(policyId)
+    setDocFilter('all')
+    setSearch('')
+    onScreenChange('documents')
   }
 
   const resetUpload = () => {
@@ -537,6 +591,17 @@ export function InsuranceTracker({
       setError(err instanceof Error ? err.message : 'Could not rename document')
     } finally {
       setRenaming(false)
+    }
+  }
+
+  const handleLinkDocument = async (docId: string, policyId: string | null) => {
+    setError(null)
+    try {
+      await onLinkDocument(docId, policyId)
+      setLinkingDocId(null)
+      setDocMenuId(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not link document')
     }
   }
 
@@ -1103,6 +1168,24 @@ export function InsuranceTracker({
                             ) : null}
                             <button
                               type="button"
+                              className="menu-item"
+                              role="menuitem"
+                              data-haptic="select"
+                              onClick={() => viewPolicyDocuments(policy.id)}
+                            >
+                              View documents
+                            </button>
+                            <button
+                              type="button"
+                              className="menu-item"
+                              role="menuitem"
+                              data-haptic="select"
+                              onClick={() => openUploadForPolicy(policy.id)}
+                            >
+                              Upload document
+                            </button>
+                            <button
+                              type="button"
                               className="menu-item menu-item-danger"
                               role="menuitem"
                               data-haptic="light"
@@ -1155,6 +1238,61 @@ export function InsuranceTracker({
                       <strong>${formatMoney(annualPremium(policy))}</strong>
                     </div>
                   </button>
+
+                  {(() => {
+                    const linkedDocs = documentsByPolicyId.get(policy.id) ?? []
+                    return (
+                      <div className="insurance-policy-docs">
+                        <div className="insurance-policy-docs-heading">
+                          <span className="expenses-total-label">
+                            Documents · {linkedDocs.length}
+                          </span>
+                          <div className="insurance-policy-docs-actions">
+                            <button
+                              type="button"
+                              className="insurance-link"
+                              data-haptic="select"
+                              onClick={() => openUploadForPolicy(policy.id)}
+                            >
+                              Upload
+                            </button>
+                            {linkedDocs.length > 0 ? (
+                              <button
+                                type="button"
+                                className="insurance-link"
+                                data-haptic="select"
+                                onClick={() => viewPolicyDocuments(policy.id)}
+                              >
+                                View all
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                        {linkedDocs.length === 0 ? (
+                          <p className="insurance-policy-docs-empty">
+                            No documents tagged to this policy yet.
+                          </p>
+                        ) : (
+                          <ul className="insurance-policy-docs-list">
+                            {linkedDocs.slice(0, 3).map((doc) => (
+                              <li key={doc.id}>
+                                <button
+                                  type="button"
+                                  className="insurance-policy-doc-row"
+                                  data-haptic="select"
+                                  onClick={() => void handleOpenDoc(doc)}
+                                >
+                                  <FileTypeIcon type={doc.fileType} />
+                                  <span className="insurance-policy-doc-name">{doc.fileName}</span>
+                                  <span className="insurance-policy-doc-open">Open</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </li>
               ))}
             </ul>
@@ -1189,6 +1327,22 @@ export function InsuranceTracker({
                 placeholder="Search documents"
               />
             </label>
+            <MenuSelect
+              label="Policy"
+              variant="field"
+              value={policyDocFilter}
+              options={[
+                { id: 'all', label: 'All policies' },
+                { id: 'unlinked', label: 'Unlinked' },
+                ...policies.map((policy) => ({
+                  id: policy.id,
+                  label: policy.insurer
+                    ? `${policy.policyName} · ${policy.insurer}`
+                    : policy.policyName,
+                })),
+              ]}
+              onChange={setPolicyDocFilter}
+            />
             <div className="insurance-filter-chips" role="group" aria-label="File type">
               {(
                 [
@@ -1211,6 +1365,26 @@ export function InsuranceTracker({
               ))}
             </div>
           </div>
+
+          {policyDocFilter !== 'all' ? (
+            <div className="insurance-docs-filter-note">
+              <span>
+                {policyDocFilter === 'unlinked'
+                  ? 'Showing unlinked documents'
+                  : `Showing documents for ${
+                      policies.find((p) => p.id === policyDocFilter)?.policyName ?? 'policy'
+                    }`}
+              </span>
+              <button
+                type="button"
+                className="insurance-link"
+                data-haptic="select"
+                onClick={() => setPolicyDocFilter('all')}
+              >
+                Clear
+              </button>
+            </div>
+          ) : null}
 
           {filteredDocuments.length === 0 ? (
             <p className="insurance-empty-card">No documents match this filter.</p>
@@ -1274,7 +1448,12 @@ export function InsuranceTracker({
                         <div className="insurance-list-main">
                           <span className="insurance-list-title">{doc.fileName}</span>
                           <span className="insurance-list-meta">
-                            {doc.insurer || doc.policyName || 'Unlinked'} ·{' '}
+                            {doc.policyId
+                              ? doc.policyName ||
+                                policies.find((p) => p.id === doc.policyId)?.policyName ||
+                                'Linked policy'
+                              : 'Unlinked'}
+                            {doc.insurer ? ` · ${doc.insurer}` : ''} ·{' '}
                             {formatFileSize(doc.fileSize)} · {formatUploadedAt(doc.uploadedAt)}
                           </span>
                         </div>
@@ -1293,7 +1472,13 @@ export function InsuranceTracker({
                         </button>
                         {docMenuId === doc.id && (
                           <>
-                            <div className="menu-backdrop" onClick={() => setDocMenuId(null)} />
+                            <div
+                              className="menu-backdrop"
+                              onClick={() => {
+                                setDocMenuId(null)
+                                setLinkingDocId(null)
+                              }}
+                            />
                             <div className="header-menu insurance-doc-menu-panel" role="menu">
                               <button
                                 type="button"
@@ -1316,6 +1501,49 @@ export function InsuranceTracker({
                               >
                                 Rename
                               </button>
+                              {policies.length > 0 ? (
+                                <button
+                                  type="button"
+                                  className="menu-item"
+                                  role="menuitem"
+                                  data-haptic="select"
+                                  onClick={() =>
+                                    setLinkingDocId((current) =>
+                                      current === doc.id ? null : doc.id
+                                    )
+                                  }
+                                >
+                                  {doc.policyId ? 'Change policy' : 'Link to policy'}
+                                </button>
+                              ) : null}
+                              {doc.policyId ? (
+                                <button
+                                  type="button"
+                                  className="menu-item"
+                                  role="menuitem"
+                                  data-haptic="select"
+                                  onClick={() => void handleLinkDocument(doc.id, null)}
+                                >
+                                  Unlink from policy
+                                </button>
+                              ) : null}
+                              {linkingDocId === doc.id ? (
+                                <div className="insurance-doc-link-picker" role="none">
+                                  {policies.map((policy) => (
+                                    <button
+                                      key={policy.id}
+                                      type="button"
+                                      className="menu-item"
+                                      role="menuitem"
+                                      data-haptic="select"
+                                      onClick={() => void handleLinkDocument(doc.id, policy.id)}
+                                    >
+                                      {policy.policyName}
+                                      {doc.policyId === policy.id ? ' ✓' : ''}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : null}
                               <button
                                 type="button"
                                 className="menu-item menu-item-danger"

@@ -13,6 +13,7 @@ import {
   fetchDocuments,
   fetchPolicies,
   getDocumentUrl,
+  linkDocument,
   renameDocument,
   updatePolicy,
   uploadDocument,
@@ -139,6 +140,26 @@ export function useInsurance(userId?: string) {
     [userId]
   )
 
+  const linkDoc = useCallback(
+    async (id: string, policyId: string | null) => {
+      const updated = await linkDocument(id, policyId, userId)
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === id
+            ? {
+                ...doc,
+                ...updated,
+                insurer: updated.insurer,
+                policyName: updated.policyName,
+              }
+            : doc
+        )
+      )
+      return updated
+    },
+    [userId]
+  )
+
   const openDocument = useCallback(
     async (document: InsuranceDocument) => {
       return getDocumentUrl(document, userId)
@@ -157,6 +178,7 @@ export function useInsurance(userId?: string) {
     addDocument,
     removeDocument,
     renameDocument: renameDoc,
+    linkDocument: linkDoc,
     openDocument,
     reload: load,
   }

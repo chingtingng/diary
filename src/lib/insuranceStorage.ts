@@ -579,6 +579,71 @@ export async function renameDocument(
   return rowToDocument(data as InsuranceDocumentRow)
 }
 
+export async function linkDocument(
+  id: string,
+  policyId: string | null,
+  userId?: string
+): Promise<InsuranceDocument> {
+  if (getStorageMode() === 'local') {
+    const documents = readLocalDocuments()
+    const index = documents.findIndex((d) => d.id === id)
+    if (index === -1) throw new Error('Document not found')
+
+    let insurer: string | undefined
+    let policyName: string | undefined
+    if (policyId) {
+      const policy = readLocalPolicies().find((p) => p.id === policyId)
+      if (!policy) throw new Error('Policy not found')
+      insurer = policy.insurer
+      policyName = policy.policyName
+    }
+
+    const updated: InsuranceDocument = {
+      ...documents[index],
+      policyId,
+      insurer,
+      policyName,
+    }
+    documents[index] = updated
+    writeLocalDocuments(documents)
+    return updated
+  }
+
+  if (!supabase || !userId) throw new Error('Not authenticated')
+
+  const { data, error } = await supabase
+    .from('insurance_documents')
+    .update({ policy_id: policyId })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('*, insurance_policies(insurer, policy_name)')
+    .single()
+
+  if (error) {
+    const fallback = await supabase
+      .from('insurance_documents')
+      .update({ policy_id: policyId })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (fallback.error) {
+      throw new Error(errorMessage(fallback.error, 'Could not link document'))
+    }
+    const document = rowToDocument(fallback.data as InsuranceDocumentRow)
+    if (policyId) {
+      const policy = (await fetchPolicies(userId)).find((p) => p.id === policyId)
+      if (policy) {
+        document.insurer = policy.insurer
+        document.policyName = policy.policyName
+      }
+    }
+    return document
+  }
+
+  return rowToDocument(data as InsuranceDocumentRow)
+}
+
 export async function deleteDocument(id: string, userId?: string): Promise<void> {
   if (getStorageMode() === 'local') {
     const documents = readLocalDocuments()

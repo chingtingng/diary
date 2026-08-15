@@ -79,6 +79,7 @@ function App() {
     addDocument,
     removeDocument,
     renameDocument,
+    linkDocument,
     openDocument,
   } = useInsurance(user?.id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -416,6 +417,7 @@ function App() {
               onUploadDocument={addDocument}
               onDeleteDocument={removeDocument}
               onRenameDocument={renameDocument}
+              onLinkDocument={linkDocument}
               onOpenDocument={openDocument}
               uploadRequestKey={uploadRequestKey}
             />
