@@ -3144,6 +3144,16 @@ button.year-board-cell:hover {
   align-items: flex-start;
 }
 
+.insurance-policy-card-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0;
+}
+
 .insurance-policy-menu {
   position: relative;
   flex-shrink: 0;
@@ -3226,6 +3236,13 @@ button.year-board-cell:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.insurance-policy-card-meta-button {
+  width: 100%;
+  margin-top: 2px;
+  padding: 0;
+  text-align: left;
 }
 
 .insurance-policy-card-meta > div {
@@ -3381,8 +3398,11 @@ button.year-board-cell:hover {
 }
 
 .expense-field input,
+.expense-field textarea,
 .insurance-form-grid input,
-.insurance-form-card > .expense-field input {
+.insurance-form-grid textarea,
+.insurance-form-card > .expense-field input,
+.insurance-form-card > .expense-field textarea {
   display: block;
   width: 100%;
   max-width: 100%;
@@ -3394,9 +3414,11 @@ button.year-board-cell:hover {
   background: rgb(255 255 255 / 80%);
   color: var(--ink);
   font-weight: 500;
+  resize: vertical;
 }
 
-.expense-field input:focus {
+.expense-field input:focus,
+.expense-field textarea:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   box-shadow: 0 0 0 4px var(--accent-soft);

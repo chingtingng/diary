@@ -26,6 +26,7 @@ import {
   type InsuranceDocumentInput,
   type InsurancePolicy,
   type InsurancePolicyInput,
+  type InsurancePolicyPatch,
   type PolicyStatusId,
   type PolicyTypeId,
   type PremiumFrequencyId,
@@ -40,6 +41,7 @@ interface InsuranceTrackerProps {
   screen: InsuranceScreen
   onScreenChange: (screen: InsuranceScreen) => void
   onAddPolicy: (input: InsurancePolicyInput) => Promise<InsurancePolicy>
+  onSavePolicy: (id: string, patch: InsurancePolicyPatch) => Promise<InsurancePolicy>
   onDeletePolicy: (id: string) => Promise<void>
   onUploadDocument: (input: InsuranceDocumentInput) => Promise<InsuranceDocument>
   onDeleteDocument: (id: string) => Promise<void>
@@ -113,6 +115,29 @@ const EMPTY_POLICY: InsurancePolicyInput = {
   notes: '',
 }
 
+function policyToDraft(policy: InsurancePolicy): InsurancePolicyInput {
+  return {
+    insurer: policy.insurer,
+    policyName: policy.policyName,
+    policyType: policy.policyType,
+    coverageAmount: policy.coverageAmount,
+    premium: policy.premium,
+    premiumFrequency: policy.premiumFrequency,
+    renewalDate: policy.renewalDate,
+    status: policy.status,
+    notes: policy.notes,
+  }
+}
+
+function renewalDateFromPolicy(policy: InsurancePolicy): Date {
+  if (!policy.renewalDate) return atLocalNoon(new Date())
+  try {
+    return atLocalNoon(parseISO(policy.renewalDate))
+  } catch {
+    return atLocalNoon(new Date())
+  }
+}
+
 export function InsuranceTracker({
   policies,
   documents,
@@ -120,6 +145,7 @@ export function InsuranceTracker({
   screen,
   onScreenChange,
   onAddPolicy,
+  onSavePolicy,
   onDeletePolicy,
   onUploadDocument,
   onDeleteDocument,
@@ -129,6 +155,7 @@ export function InsuranceTracker({
 }: InsuranceTrackerProps) {
   const [showUpload, setShowUpload] = useState(false)
   const [showPolicyForm, setShowPolicyForm] = useState(false)
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [docFilter, setDocFilter] = useState<DocumentFilter>('all')
   const [docMenuId, setDocMenuId] = useState<string | null>(null)
@@ -397,20 +424,27 @@ export function InsuranceTracker({
     }
     setSubmitting(true)
     setError(null)
+    const payload: InsurancePolicyInput = {
+      ...policyDraft,
+      insurer: policyDraft.insurer.trim(),
+      policyName: policyDraft.policyName.trim(),
+      renewalDate: toIsoDate(renewalDate),
+      premium: Number(policyDraft.premium) || 0,
+      coverageAmount:
+        policyDraft.coverageAmount === null || Number.isNaN(Number(policyDraft.coverageAmount))
+          ? null
+          : Number(policyDraft.coverageAmount),
+      notes: policyDraft.notes?.trim() ?? '',
+    }
     try {
-      await onAddPolicy({
-        ...policyDraft,
-        insurer: policyDraft.insurer.trim(),
-        policyName: policyDraft.policyName.trim(),
-        renewalDate: toIsoDate(renewalDate),
-        premium: Number(policyDraft.premium) || 0,
-        coverageAmount:
-          policyDraft.coverageAmount === null || Number.isNaN(Number(policyDraft.coverageAmount))
-            ? null
-            : Number(policyDraft.coverageAmount),
-      })
+      if (editingPolicyId) {
+        await onSavePolicy(editingPolicyId, payload)
+      } else {
+        await onAddPolicy(payload)
+      }
       setPolicyDraft(EMPTY_POLICY)
       setRenewalDate(atLocalNoon(new Date()))
+      setEditingPolicyId(null)
       setShowPolicyForm(false)
       onScreenChange('policies')
     } catch (err) {
@@ -418,6 +452,32 @@ export function InsuranceTracker({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const openAddPolicy = () => {
+    setError(null)
+    setPolicyMenuId(null)
+    setEditingPolicyId(null)
+    setPolicyDraft(EMPTY_POLICY)
+    setRenewalDate(atLocalNoon(new Date()))
+    setShowPolicyForm(true)
+  }
+
+  const startEditPolicy = (policy: InsurancePolicy) => {
+    setError(null)
+    setPolicyMenuId(null)
+    setEditingPolicyId(policy.id)
+    setPolicyDraft(policyToDraft(policy))
+    setRenewalDate(renewalDateFromPolicy(policy))
+    setShowPolicyForm(true)
+  }
+
+  const cancelPolicyForm = () => {
+    setShowPolicyForm(false)
+    setEditingPolicyId(null)
+    setPolicyDraft(EMPTY_POLICY)
+    setRenewalDate(atLocalNoon(new Date()))
+    setError(null)
   }
 
   const handleOpenDoc = async (doc: InsuranceDocument) => {
@@ -688,12 +748,14 @@ export function InsuranceTracker({
       ) : showPolicyForm ? (
         <section className="expense-summary-card insurance-form-card" ref={formCardRef}>
           <div className="expense-form-heading">
-            <h2 className="expenses-title">Add policy</h2>
+            <h2 className="expenses-title">
+              {editingPolicyId ? 'Edit policy' : 'Add policy'}
+            </h2>
             <button
               type="button"
               className="expense-form-cancel"
               data-haptic="light"
-              onClick={() => setShowPolicyForm(false)}
+              onClick={cancelPolicyForm}
             >
               Cancel
             </button>
@@ -779,6 +841,17 @@ export function InsuranceTracker({
               }
             />
             <DateField label="Renewal date" value={renewalDate} onChange={setRenewalDate} />
+            <label className="expense-field">
+              <span>Notes</span>
+              <textarea
+                value={policyDraft.notes ?? ''}
+                onChange={(e) =>
+                  setPolicyDraft((prev) => ({ ...prev, notes: e.target.value }))
+                }
+                placeholder="Optional"
+                rows={3}
+              />
+            </label>
           </div>
 
           <button
@@ -788,7 +861,11 @@ export function InsuranceTracker({
             disabled={submitting}
             onClick={handleAddPolicy}
           >
-            {submitting ? 'Saving…' : 'Save policy'}
+            {submitting
+              ? 'Saving…'
+              : editingPolicyId
+                ? 'Save changes'
+                : 'Save policy'}
           </button>
         </section>
       ) : screen === 'overview' ? (
@@ -914,18 +991,25 @@ export function InsuranceTracker({
               {policies.map((policy) => (
                 <li key={policy.id} className="insurance-policy-card">
                   <div className="insurance-policy-card-top">
-                    <PolicyMark name={policy.insurer || policy.policyName} />
-                    <div className="insurance-policy-card-copy">
-                      <div className="insurance-policy-card-title-row">
-                        <h3>{policy.policyName}</h3>
-                        <span className={`insurance-status insurance-status-${policy.status}`}>
-                          {getPolicyStatusLabel(policy.status)}
-                        </span>
+                    <button
+                      type="button"
+                      className="insurance-policy-card-main"
+                      data-haptic="select"
+                      onClick={() => startEditPolicy(policy)}
+                    >
+                      <PolicyMark name={policy.insurer || policy.policyName} />
+                      <div className="insurance-policy-card-copy">
+                        <div className="insurance-policy-card-title-row">
+                          <h3>{policy.policyName}</h3>
+                          <span className={`insurance-status insurance-status-${policy.status}`}>
+                            {getPolicyStatusLabel(policy.status)}
+                          </span>
+                        </div>
+                        <p>
+                          {policy.insurer || 'Insurer'} · {getPolicyTypeLabel(policy.policyType)}
+                        </p>
                       </div>
-                      <p>
-                        {policy.insurer || 'Insurer'} · {getPolicyTypeLabel(policy.policyType)}
-                      </p>
-                    </div>
+                    </button>
                     <div className="insurance-policy-menu">
                       <button
                         type="button"
@@ -952,6 +1036,15 @@ export function InsuranceTracker({
                           >
                             <button
                               type="button"
+                              className="menu-item"
+                              role="menuitem"
+                              data-haptic="select"
+                              onClick={() => startEditPolicy(policy)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
                               className="menu-item menu-item-danger"
                               role="menuitem"
                               data-haptic="light"
@@ -969,7 +1062,12 @@ export function InsuranceTracker({
                       )}
                     </div>
                   </div>
-                  <div className="insurance-policy-card-meta">
+                  <button
+                    type="button"
+                    className="insurance-policy-card-meta insurance-policy-card-meta-button"
+                    data-haptic="select"
+                    onClick={() => startEditPolicy(policy)}
+                  >
                     <div>
                       <span className="expenses-total-label">Coverage</span>
                       <strong>
@@ -982,7 +1080,7 @@ export function InsuranceTracker({
                       <span className="expenses-total-label">Yearly premium</span>
                       <strong>${formatMoney(annualPremium(policy))}</strong>
                     </div>
-                  </div>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -992,10 +1090,7 @@ export function InsuranceTracker({
             type="button"
             className="expense-add-toggle"
             data-haptic="light"
-            onClick={() => {
-              setError(null)
-              setShowPolicyForm(true)
-            }}
+            onClick={openAddPolicy}
           >
             + Add policy
           </button>

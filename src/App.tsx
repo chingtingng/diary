@@ -74,6 +74,7 @@ function App() {
     documents,
     loading: insuranceLoading,
     addPolicy,
+    savePolicy,
     removePolicy,
     addDocument,
     removeDocument,
@@ -410,6 +411,7 @@ function App() {
               screen={insuranceScreen}
               onScreenChange={handleInsuranceScreen}
               onAddPolicy={addPolicy}
+              onSavePolicy={savePolicy}
               onDeletePolicy={removePolicy}
               onUploadDocument={addDocument}
               onDeleteDocument={removeDocument}
