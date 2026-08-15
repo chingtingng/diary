@@ -77,6 +77,7 @@ function App() {
     removePolicy,
     addDocument,
     removeDocument,
+    renameDocument,
     openDocument,
   } = useInsurance(user?.id)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -412,6 +413,7 @@ function App() {
               onDeletePolicy={removePolicy}
               onUploadDocument={addDocument}
               onDeleteDocument={removeDocument}
+              onRenameDocument={renameDocument}
               onOpenDocument={openDocument}
               uploadRequestKey={uploadRequestKey}
             />

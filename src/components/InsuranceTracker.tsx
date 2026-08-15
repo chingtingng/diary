@@ -43,6 +43,7 @@ interface InsuranceTrackerProps {
   onDeletePolicy: (id: string) => Promise<void>
   onUploadDocument: (input: InsuranceDocumentInput) => Promise<InsuranceDocument>
   onDeleteDocument: (id: string) => Promise<void>
+  onRenameDocument: (id: string, fileName: string) => Promise<InsuranceDocument>
   onOpenDocument: (document: InsuranceDocument) => Promise<string | null>
   uploadRequestKey?: number
 }
@@ -122,6 +123,7 @@ export function InsuranceTracker({
   onDeletePolicy,
   onUploadDocument,
   onDeleteDocument,
+  onRenameDocument,
   onOpenDocument,
   uploadRequestKey = 0,
 }: InsuranceTrackerProps) {
@@ -130,6 +132,9 @@ export function InsuranceTracker({
   const [search, setSearch] = useState('')
   const [docFilter, setDocFilter] = useState<DocumentFilter>('all')
   const [docMenuId, setDocMenuId] = useState<string | null>(null)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -424,6 +429,39 @@ export function InsuranceTracker({
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not open that file')
+    }
+  }
+
+  const startRename = (doc: InsuranceDocument) => {
+    setDocMenuId(null)
+    setError(null)
+    setRenamingId(doc.id)
+    setRenameValue(doc.fileName)
+  }
+
+  const cancelRename = () => {
+    if (renaming) return
+    setRenamingId(null)
+    setRenameValue('')
+  }
+
+  const commitRename = async (doc: InsuranceDocument) => {
+    const next = renameValue.trim()
+    if (!next || next === doc.fileName) {
+      cancelRename()
+      return
+    }
+
+    setRenaming(true)
+    setError(null)
+    try {
+      await onRenameDocument(doc.id, next)
+      setRenamingId(null)
+      setRenameValue('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not rename document')
+    } finally {
+      setRenaming(false)
     }
   }
 
@@ -978,67 +1016,124 @@ export function InsuranceTracker({
             <ul className="insurance-list insurance-doc-list">
               {filteredDocuments.map((doc) => (
                 <li key={doc.id} className="insurance-doc-row-wrap">
-                  <button
-                    type="button"
-                    className="insurance-list-row"
-                    data-haptic="select"
-                    onClick={() => handleOpenDoc(doc)}
-                  >
-                    <FileTypeIcon type={doc.fileType} />
-                    <div className="insurance-list-main">
-                      <span className="insurance-list-title">{doc.fileName}</span>
-                      <span className="insurance-list-meta">
-                        {doc.insurer || doc.policyName || 'Unlinked'} ·{' '}
-                        {formatFileSize(doc.fileSize)} · {formatUploadedAt(doc.uploadedAt)}
-                      </span>
-                    </div>
-                  </button>
-                  <div className="insurance-doc-menu">
-                    <button
-                      type="button"
-                      className="header-btn menu-toggle"
-                      data-haptic="light"
-                      aria-label={`Actions for ${doc.fileName}`}
-                      onClick={() =>
-                        setDocMenuId((current) => (current === doc.id ? null : doc.id))
-                      }
+                  {renamingId === doc.id ? (
+                    <form
+                      className="insurance-rename-form"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        void commitRename(doc)
+                      }}
                     >
-                      <MenuDots />
-                    </button>
-                    {docMenuId === doc.id && (
-                      <>
-                        <div className="menu-backdrop" onClick={() => setDocMenuId(null)} />
-                        <div className="header-menu insurance-doc-menu-panel" role="menu">
-                          <button
-                            type="button"
-                            className="menu-item"
-                            role="menuitem"
-                            data-haptic="select"
-                            onClick={() => {
-                              setDocMenuId(null)
-                              void handleOpenDoc(doc)
-                            }}
-                          >
-                            Open
-                          </button>
-                          <button
-                            type="button"
-                            className="menu-item menu-item-danger"
-                            role="menuitem"
-                            data-haptic="light"
-                            onClick={() => {
-                              setDocMenuId(null)
-                              if (confirm(`Delete “${doc.fileName}”?`)) {
-                                void onDeleteDocument(doc.id)
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
+                      <FileTypeIcon type={doc.fileType} />
+                      <label className="insurance-rename-field">
+                        <span className="visually-hidden">Rename document</span>
+                        <input
+                          value={renameValue}
+                          autoFocus
+                          disabled={renaming}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              e.preventDefault()
+                              cancelRename()
+                            }
+                          }}
+                        />
+                      </label>
+                      <div className="insurance-rename-actions">
+                        <button
+                          type="submit"
+                          className="header-btn"
+                          data-haptic="select"
+                          disabled={renaming || !renameValue.trim()}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="header-btn"
+                          data-haptic="light"
+                          disabled={renaming}
+                          onClick={cancelRename}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="insurance-list-row"
+                        data-haptic="select"
+                        onClick={() => handleOpenDoc(doc)}
+                      >
+                        <FileTypeIcon type={doc.fileType} />
+                        <div className="insurance-list-main">
+                          <span className="insurance-list-title">{doc.fileName}</span>
+                          <span className="insurance-list-meta">
+                            {doc.insurer || doc.policyName || 'Unlinked'} ·{' '}
+                            {formatFileSize(doc.fileSize)} · {formatUploadedAt(doc.uploadedAt)}
+                          </span>
                         </div>
-                      </>
-                    )}
-                  </div>
+                      </button>
+                      <div className="insurance-doc-menu">
+                        <button
+                          type="button"
+                          className="header-btn menu-toggle"
+                          data-haptic="light"
+                          aria-label={`Actions for ${doc.fileName}`}
+                          onClick={() =>
+                            setDocMenuId((current) => (current === doc.id ? null : doc.id))
+                          }
+                        >
+                          <MenuDots />
+                        </button>
+                        {docMenuId === doc.id && (
+                          <>
+                            <div className="menu-backdrop" onClick={() => setDocMenuId(null)} />
+                            <div className="header-menu insurance-doc-menu-panel" role="menu">
+                              <button
+                                type="button"
+                                className="menu-item"
+                                role="menuitem"
+                                data-haptic="select"
+                                onClick={() => {
+                                  setDocMenuId(null)
+                                  void handleOpenDoc(doc)
+                                }}
+                              >
+                                Open
+                              </button>
+                              <button
+                                type="button"
+                                className="menu-item"
+                                role="menuitem"
+                                data-haptic="select"
+                                onClick={() => startRename(doc)}
+                              >
+                                Rename
+                              </button>
+                              <button
+                                type="button"
+                                className="menu-item menu-item-danger"
+                                role="menuitem"
+                                data-haptic="light"
+                                onClick={() => {
+                                  setDocMenuId(null)
+                                  if (confirm(`Delete “${doc.fileName}”?`)) {
+                                    void onDeleteDocument(doc.id)
+                                  }
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

@@ -13,6 +13,7 @@ import {
   fetchDocuments,
   fetchPolicies,
   getDocumentUrl,
+  renameDocument,
   updatePolicy,
   uploadDocument,
 } from '../lib/insuranceStorage'
@@ -118,6 +119,26 @@ export function useInsurance(userId?: string) {
     [userId]
   )
 
+  const renameDoc = useCallback(
+    async (id: string, fileName: string) => {
+      const updated = await renameDocument(id, fileName, userId)
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === id
+            ? {
+                ...doc,
+                ...updated,
+                insurer: updated.insurer ?? doc.insurer,
+                policyName: updated.policyName ?? doc.policyName,
+              }
+            : doc
+        )
+      )
+      return updated
+    },
+    [userId]
+  )
+
   const openDocument = useCallback(
     async (document: InsuranceDocument) => {
       return getDocumentUrl(document, userId)
@@ -135,6 +156,7 @@ export function useInsurance(userId?: string) {
     removePolicy,
     addDocument,
     removeDocument,
+    renameDocument: renameDoc,
     openDocument,
     reload: load,
   }

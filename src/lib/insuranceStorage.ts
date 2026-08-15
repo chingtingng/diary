@@ -477,6 +477,77 @@ export async function uploadDocument(
   return { document, policy: createdPolicy }
 }
 
+function normalizeDocumentFileName(next: string, previous: string): string {
+  const trimmed = next.trim().replace(/[/\\]/g, '-')
+  if (!trimmed) throw new Error('Document name cannot be empty')
+
+  const prevExtMatch = previous.match(/(\.[a-z0-9]{1,8})$/i)
+  const prevExt = prevExtMatch?.[1] ?? ''
+  const nextHasExt = /\.[a-z0-9]{1,8}$/i.test(trimmed)
+  if (prevExt && !nextHasExt) return `${trimmed}${prevExt}`
+  return trimmed
+}
+
+export async function renameDocument(
+  id: string,
+  fileName: string,
+  userId?: string
+): Promise<InsuranceDocument> {
+  if (getStorageMode() === 'local') {
+    const documents = readLocalDocuments()
+    const index = documents.findIndex((d) => d.id === id)
+    if (index === -1) throw new Error('Document not found')
+
+    const updated: InsuranceDocument = {
+      ...documents[index],
+      fileName: normalizeDocumentFileName(fileName, documents[index].fileName),
+    }
+    documents[index] = updated
+    writeLocalDocuments(documents)
+    return updated
+  }
+
+  if (!supabase || !userId) throw new Error('Not authenticated')
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('insurance_documents')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(errorMessage(fetchError))
+  if (!existing) throw new Error('Document not found')
+
+  const nextName = normalizeDocumentFileName(
+    fileName,
+    (existing as InsuranceDocumentRow).file_name
+  )
+
+  const { data, error } = await supabase
+    .from('insurance_documents')
+    .update({ file_name: nextName })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('*, insurance_policies(insurer, policy_name)')
+    .single()
+
+  if (error) {
+    // Older projects / missing FK embed: still rename without joined policy labels.
+    const fallback = await supabase
+      .from('insurance_documents')
+      .update({ file_name: nextName })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (fallback.error) throw new Error(errorMessage(fallback.error, 'Could not rename document'))
+    return rowToDocument(fallback.data as InsuranceDocumentRow)
+  }
+
+  return rowToDocument(data as InsuranceDocumentRow)
+}
+
 export async function deleteDocument(id: string, userId?: string): Promise<void> {
   if (getStorageMode() === 'local') {
     const documents = readLocalDocuments()
