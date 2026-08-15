@@ -2972,13 +2972,13 @@ button.year-board-cell:hover {
 }
 
 .insurance-summary-card {
-  gap: 14px;
+  gap: 10px;
 }
 
 .insurance-metrics {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
-  gap: 14px 12px;
+  gap: 10px 12px;
 }
 
 .insurance-metrics-simple {
@@ -2987,6 +2987,11 @@ button.year-board-cell:hover {
 
 .insurance-metrics-simple > :first-child {
   grid-column: 1 / -1;
+}
+
+.insurance-premiums-hero {
+  margin-top: 0;
+  gap: 2px;
 }
 
 .insurance-metric {
@@ -3139,6 +3144,18 @@ button.year-board-cell:hover {
   align-items: flex-start;
 }
 
+.insurance-policy-menu {
+  position: relative;
+  flex-shrink: 0;
+  margin: -4px -4px 0 0;
+}
+
+.insurance-policy-menu-panel {
+  right: 0;
+  left: auto;
+  min-width: 140px;
+}
+
 .insurance-policy-mark {
   display: grid;
   place-items: center;
@@ -3160,8 +3177,9 @@ button.year-board-cell:hover {
 .insurance-policy-card-title-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .insurance-policy-card-copy h3 {
@@ -3223,13 +3241,6 @@ button.year-board-cell:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.insurance-card-delete {
-  align-self: flex-start;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--danger);
 }
 
 .insurance-docs-toolbar {

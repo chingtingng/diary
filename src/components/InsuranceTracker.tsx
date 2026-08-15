@@ -135,6 +135,7 @@ export function InsuranceTracker({
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
+  const [policyMenuId, setPolicyMenuId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -794,9 +795,11 @@ export function InsuranceTracker({
         <>
           <section className="expense-summary-card insurance-summary-card">
             <div className="insurance-metrics insurance-metrics-simple">
-              <div>
-                <p className="expenses-total-label">Yearly premiums</p>
-                <p className="expenses-total-amount">${formatMoney(totalAnnualPremium)}</p>
+              <div className="expenses-total-block insurance-premiums-hero">
+                <span className="expenses-total-label">Yearly premiums</span>
+                <span className="expenses-total-amount">
+                  ${formatMoney(totalAnnualPremium)}
+                </span>
               </div>
               <div className="insurance-metric">
                 <span className="expenses-total-label">Policies</span>
@@ -923,6 +926,48 @@ export function InsuranceTracker({
                         {policy.insurer || 'Insurer'} · {getPolicyTypeLabel(policy.policyType)}
                       </p>
                     </div>
+                    <div className="insurance-policy-menu">
+                      <button
+                        type="button"
+                        className="header-btn menu-toggle"
+                        data-haptic="light"
+                        aria-label={`Actions for ${policy.policyName}`}
+                        onClick={() =>
+                          setPolicyMenuId((current) =>
+                            current === policy.id ? null : policy.id
+                          )
+                        }
+                      >
+                        <MenuDots />
+                      </button>
+                      {policyMenuId === policy.id && (
+                        <>
+                          <div
+                            className="menu-backdrop"
+                            onClick={() => setPolicyMenuId(null)}
+                          />
+                          <div
+                            className="header-menu insurance-policy-menu-panel"
+                            role="menu"
+                          >
+                            <button
+                              type="button"
+                              className="menu-item menu-item-danger"
+                              role="menuitem"
+                              data-haptic="light"
+                              onClick={() => {
+                                setPolicyMenuId(null)
+                                if (confirm(`Delete “${policy.policyName}”?`)) {
+                                  void onDeletePolicy(policy.id)
+                                }
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="insurance-policy-card-meta">
                     <div>
@@ -938,18 +983,6 @@ export function InsuranceTracker({
                       <strong>${formatMoney(annualPremium(policy))}</strong>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="insurance-card-delete"
-                    data-haptic="light"
-                    onClick={() => {
-                      if (confirm(`Delete “${policy.policyName}”?`)) {
-                        void onDeletePolicy(policy.id)
-                      }
-                    }}
-                  >
-                    Delete
-                  </button>
                 </li>
               ))}
             </ul>
