@@ -308,7 +308,9 @@ function detectInsurer(text: string): string | undefined {
   )
   if (
     legal?.[1] &&
-    !/association|practice|code of|^life insurance$|^general insurance$/i.test(legal[1])
+    !/association|practice|code of|^life insurance$|^general insurance$|\blife\s*pa\b|\bpersonal\s+accident\b/i.test(
+      legal[1]
+    )
   ) {
     return canonicalInsurer(legal[1])
   }
@@ -576,6 +578,29 @@ function roundMoney(value: number): number {
   return Math.round(value * 100) / 100
 }
 
+function detectPolicyNumber(text: string): string | undefined {
+  const labeled = labeledValue(text, [
+    'policy number',
+    'policy no.',
+    'policy no',
+    'policy #',
+    'certificate number',
+    'certificate no.',
+    'certificate no',
+  ])
+  if (labeled) {
+    const cleaned = labeled.replace(/\s+/g, '').trim()
+    if (/^[A-Za-z0-9][A-Za-z0-9/-]{3,40}$/.test(cleaned)) return cleaned
+  }
+
+  const inline = text.match(
+    /policy\s*(?:number|no\.?#?)\s*[:-]?\s*([A-Za-z0-9][A-Za-z0-9/-]{3,40})/i
+  )
+  if (inline?.[1]) return inline[1].trim()
+
+  return undefined
+}
+
 function detectCoverage(text: string): number | undefined {
   const table = text.match(
     /coverage\s*\/\s*benefit[\s\S]{0,500}?((?:SGD|USD|S\$|HK\$|RM|\$)\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?)/i
@@ -585,11 +610,20 @@ function detectCoverage(text: string): number | undefined {
     if (amount != null && amount >= 1000) return amount
   }
 
+  // Prefer the principal Accidental Death benefit over double/triple indemnity.
   const accidental = text.match(
     /Accidental Death(?:\s+and\s+Disability)? Benefit\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i
   )
   if (accidental?.[1]) {
     const amount = cleanMoney(accidental[1])
+    if (amount != null && amount >= 1000) return amount
+  }
+
+  const sumInsuredNearBase = text.match(
+    /(?:base plan|sum insured)[\s\S]{0,160}?Accidental Death(?:\s+and\s+Disability)? Benefit\s*(?:SGD|USD|S\$|\$)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i
+  )
+  if (sumInsuredNearBase?.[1]) {
+    const amount = cleanMoney(sumInsuredNearBase[1])
     if (amount != null && amount >= 1000) return amount
   }
 
@@ -745,10 +779,13 @@ export function parseExtractedText(
 
   const premium = detectPremium(search) ?? detectPremium(compact)
   const coverage = detectCoverage(search) ?? detectCoverage(compact)
+  const policyNumber = detectPolicyNumber(search) ?? detectPolicyNumber(compact)
   const renewalDate = detectRenewalDate(search, asOf) ?? detectRenewalDate(compact, asOf)
   const yearlySelected = /frequency of premium payment(?:\s+selected)?\s*yearly/i.test(search)
 
-  const filled = Boolean(insurer || policyName || premium || coverage || renewalDate || policyType)
+  const filled = Boolean(
+    insurer || policyName || premium || coverage || renewalDate || policyType || policyNumber
+  )
 
   return {
     source: 'pdf',
@@ -756,6 +793,7 @@ export function parseExtractedText(
     textLength: compact.length,
     insurer,
     policyName,
+    policyNumber,
     policyType,
     premium: premium?.amount,
     premiumFrequency:

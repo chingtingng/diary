@@ -65,6 +65,7 @@ test('extracts China Taiping i-Secure Legacy schedule fields', () => {
   assert.equal(draft.insurer, 'China Taiping')
   assert.equal(draft.policyName, 'i-Secure Legacy (II)')
   assert.equal(draft.policyType, 'life')
+  assert.equal(draft.policyNumber, '0000521620')
   assert.equal(draft.premium, 1555.1)
   assert.equal(draft.premiumFrequency, 'annual')
   assert.equal(draft.coverageAmount, 200000)
@@ -101,6 +102,24 @@ test('extracts AIA-style labeled policy details', () => {
   assert.equal(draft.premiumFrequency, 'annual')
   assert.equal(draft.coverageAmount, 150000)
   assert.equal(draft.renewalDate, '2027-03-15')
+})
+
+test('reads FWD Life PA application sum insured as personal accident cover', () => {
+  const text = `
+FWD Singapore Pte. Ltd.
+Life PA Insurance Application form
+Your plan Benefits Sum insured Period of insurance
+FWD Life PA Base plan Accidental Death and Disability Benefit SGD 200,000 One year.
+Double Indemnity on Accidental Death and Disability Benefit SGD 400,000
+Annual premium Monthly premium Total premium during the 1st year SGD 212.88 SGD 18.67
+Frequency of premium payment selected Yearly
+`
+  const draft = parseExtractedText(text, 'Policy_Pack.pdf', { asOf: AS_OF })
+  assert.equal(draft.insurer, 'FWD')
+  assert.equal(draft.policyType, 'personal_accident')
+  assert.equal(draft.coverageAmount, 200000)
+  assert.equal(draft.premium, 212.88)
+  assert.equal(draft.premiumFrequency, 'annual')
 })
 
 test('does not treat annual income as Income the insurer', () => {

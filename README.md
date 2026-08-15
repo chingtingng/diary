@@ -46,9 +46,11 @@ supabase/migrations/004_add_travel_category.sql
 supabase/migrations/005_replace_home_with_hobbies.sql
 supabase/migrations/006_drop_fun_category.sql
 supabase/migrations/007_create_insurance.sql
+supabase/migrations/008_policy_number_and_types.sql
 ```
 
 These create the `entries`, `expenses`, `insurance_policies`, and `insurance_documents` tables (with RLS), plus a private `insurance-documents` Storage bucket.
+If insurance was set up earlier, also run `008_policy_number_and_types.sql` so policy numbers and newer policy types (Personal accident, Critical illness) work.
 
 **Expenses date:** `spent_at` is a `timestamptz`. The UI is date-only; the app stores local noon so the calendar day is stable.
 

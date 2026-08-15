@@ -43,6 +43,7 @@ export interface InsurancePolicy {
   id: string
   insurer: string
   policyName: string
+  policyNumber: string
   policyType: PolicyTypeId
   coverageAmount: number | null
   premium: number
@@ -73,6 +74,7 @@ export interface InsurancePolicyRow {
   user_id: string
   insurer: string
   policy_name: string
+  policy_number?: string | null
   policy_type: string
   coverage_amount: number | null
   premium: number
@@ -103,6 +105,7 @@ export interface InsuranceDocumentRow {
 export type InsurancePolicyInput = {
   insurer: string
   policyName: string
+  policyNumber?: string
   policyType: PolicyTypeId
   coverageAmount: number | null
   premium: number
@@ -165,6 +168,7 @@ export function rowToPolicy(row: InsurancePolicyRow): InsurancePolicy {
     id: row.id,
     insurer: row.insurer ?? '',
     policyName: row.policy_name,
+    policyNumber: row.policy_number ?? '',
     policyType: normalizePolicyType(row.policy_type),
     coverageAmount:
       row.coverage_amount === null || row.coverage_amount === undefined
@@ -197,6 +201,70 @@ export function rowToDocument(row: InsuranceDocumentRow): InsuranceDocument {
 
 export function getPolicyTypeLabel(id: PolicyTypeId): string {
   return POLICY_TYPES.find((t) => t.id === id)?.label ?? 'Other'
+}
+
+/** Type-aware label for the single primary coverage field. */
+export function getCoverageFieldMeta(type: PolicyTypeId): {
+  label: string
+  hint: string
+  listLabel: string
+} {
+  switch (type) {
+    case 'life':
+      return {
+        label: 'Sum insured',
+        hint: 'Main death benefit / face amount',
+        listLabel: 'Sum insured',
+      }
+    case 'critical_illness':
+      return {
+        label: 'Sum insured',
+        hint: 'Lump sum paid on a covered diagnosis',
+        listLabel: 'Sum insured',
+      }
+    case 'personal_accident':
+      return {
+        label: 'Sum insured',
+        hint: 'Main accidental death & disability benefit (not double/triple indemnity)',
+        listLabel: 'Sum insured',
+      }
+    case 'disability':
+      return {
+        label: 'Benefit amount',
+        hint: 'Monthly income benefit or lump-sum TPD cover',
+        listLabel: 'Benefit',
+      }
+    case 'health':
+      return {
+        label: 'Coverage limit',
+        hint: 'Annual or lifetime medical limit, if known',
+        listLabel: 'Limit',
+      }
+    case 'travel':
+      return {
+        label: 'Coverage limit',
+        hint: 'Main medical or trip cancellation limit',
+        listLabel: 'Limit',
+      }
+    case 'auto':
+      return {
+        label: 'Sum insured',
+        hint: 'Vehicle value or liability cover',
+        listLabel: 'Sum insured',
+      }
+    case 'home':
+      return {
+        label: 'Sum insured',
+        hint: 'Building and/or contents cover',
+        listLabel: 'Sum insured',
+      }
+    default:
+      return {
+        label: 'Coverage amount',
+        hint: 'Primary benefit or limit for this policy',
+        listLabel: 'Coverage',
+      }
+  }
 }
 
 export function getPolicyStatusLabel(id: PolicyStatusId): string {

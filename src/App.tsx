@@ -310,7 +310,7 @@ function App() {
         'Policies',
         ...policies.map(
           (p) =>
-            `- ${p.policyName} (${p.insurer || '—'}) · ${p.policyType} · $${p.premium}/${p.premiumFrequency} · renewal ${p.renewalDate ?? '—'} · ${p.status}`
+            `- ${p.policyName} (${p.insurer || '—'}) · ${p.policyNumber || 'no policy no.'} · ${p.policyType} · $${p.premium}/${p.premiumFrequency} · renewal ${p.renewalDate ?? '—'} · ${p.status}`
         ),
         '',
         'Documents',

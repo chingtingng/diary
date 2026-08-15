@@ -3245,6 +3245,42 @@ button.year-board-cell:hover {
   text-align: left;
 }
 
+.insurance-policy-number-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 2px 0 4px;
+}
+
+.insurance-policy-number {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.insurance-copy-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgb(255 255 255 / 75%);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.insurance-copy-btn:hover {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
 .insurance-policy-card-meta > div {
   display: flex;
   flex-direction: column;
@@ -3395,6 +3431,15 @@ button.year-board-cell:hover {
 .insurance-form-grid .date-field-label,
 .insurance-form-grid .menu-select-label {
   display: block;
+}
+
+.expense-field-hint {
+  display: block;
+  margin-top: -2px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  line-height: 1.35;
 }
 
 .expense-field input,

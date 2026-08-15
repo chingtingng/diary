@@ -27,7 +27,13 @@ function readLocalPolicies(): InsurancePolicy[] {
   try {
     const raw = localStorage.getItem(POLICIES_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as InsurancePolicy[]
+    const parsed = JSON.parse(raw) as InsurancePolicy[]
+    return parsed.map((policy) => ({
+      ...policy,
+      policyNumber: policy.policyNumber ?? '',
+      insurer: policy.insurer ?? '',
+      notes: policy.notes ?? '',
+    }))
   } catch {
     return []
   }
@@ -233,6 +239,7 @@ export async function createPolicy(
       id: generateId(),
       insurer: input.insurer.trim(),
       policyName: input.policyName.trim(),
+      policyNumber: input.policyNumber?.trim() ?? '',
       policyType: input.policyType,
       coverageAmount: input.coverageAmount,
       premium: input.premium,
@@ -257,6 +264,7 @@ export async function createPolicy(
       user_id: userId,
       insurer: input.insurer.trim(),
       policy_name: input.policyName.trim(),
+      policy_number: input.policyNumber?.trim() ?? '',
       policy_type: input.policyType,
       coverage_amount: input.coverageAmount,
       premium: input.premium,
@@ -296,6 +304,10 @@ export async function updatePolicy(
       insurer: patch.insurer !== undefined ? patch.insurer.trim() : policies[index].insurer,
       policyName:
         patch.policyName !== undefined ? patch.policyName.trim() : policies[index].policyName,
+      policyNumber:
+        patch.policyNumber !== undefined
+          ? patch.policyNumber.trim()
+          : policies[index].policyNumber,
       notes: patch.notes !== undefined ? patch.notes.trim() : policies[index].notes,
       updatedAt: new Date().toISOString(),
     }
@@ -309,6 +321,7 @@ export async function updatePolicy(
   const payload: Record<string, unknown> = {}
   if (patch.insurer !== undefined) payload.insurer = patch.insurer.trim()
   if (patch.policyName !== undefined) payload.policy_name = patch.policyName.trim()
+  if (patch.policyNumber !== undefined) payload.policy_number = patch.policyNumber.trim()
   if (patch.policyType !== undefined) payload.policy_type = patch.policyType
   if (patch.coverageAmount !== undefined) payload.coverage_amount = patch.coverageAmount
   if (patch.premium !== undefined) payload.premium = patch.premium

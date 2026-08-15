@@ -7,8 +7,17 @@ create table if not exists public.insurance_policies (
   policy_name text not null,
   policy_type text not null default 'other'
     check (policy_type in (
-      'health', 'life', 'auto', 'home', 'travel', 'disability', 'other'
+      'life',
+      'health',
+      'critical_illness',
+      'personal_accident',
+      'disability',
+      'travel',
+      'auto',
+      'home',
+      'other'
     )),
+  policy_number text not null default '',
   coverage_amount numeric(14, 2) check (coverage_amount is null or coverage_amount >= 0),
   premium numeric(12, 2) not null default 0 check (premium >= 0),
   premium_frequency text not null default 'annual'

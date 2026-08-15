@@ -18,6 +18,7 @@ import {
   POLICY_TYPES,
   annualPremium,
   formatFileSize,
+  getCoverageFieldMeta,
   getPolicyStatusLabel,
   getPolicyTypeLabel,
   type DocumentFilter,
@@ -106,6 +107,7 @@ function AccordionChevron() {
 const EMPTY_POLICY: InsurancePolicyInput = {
   insurer: '',
   policyName: '',
+  policyNumber: '',
   policyType: 'health',
   coverageAmount: null,
   premium: 0,
@@ -119,6 +121,7 @@ function policyToDraft(policy: InsurancePolicy): InsurancePolicyInput {
   return {
     insurer: policy.insurer,
     policyName: policy.policyName,
+    policyNumber: policy.policyNumber,
     policyType: policy.policyType,
     coverageAmount: policy.coverageAmount,
     premium: policy.premium,
@@ -283,6 +286,7 @@ export function InsuranceTracker({
       ...prev,
       insurer: draft.insurer?.trim() || prev.insurer,
       policyName: fallbackName || prev.policyName,
+      policyNumber: draft.policyNumber?.trim() || prev.policyNumber,
       policyType: draft.policyType ?? prev.policyType,
       premium: draft.premium ?? prev.premium,
       premiumFrequency: draft.premiumFrequency ?? prev.premiumFrequency,
@@ -396,6 +400,7 @@ export function InsuranceTracker({
                 ...uploadPolicy,
                 insurer: uploadPolicy.insurer.trim(),
                 policyName: uploadPolicy.policyName.trim() || file.name.replace(/\.[^.]+$/, ''),
+                policyNumber: uploadPolicy.policyNumber?.trim() ?? '',
                 renewalDate: toIsoDate(uploadRenewalDate),
                 premium: Number(uploadPolicy.premium) || 0,
                 coverageAmount:
@@ -428,6 +433,7 @@ export function InsuranceTracker({
       ...policyDraft,
       insurer: policyDraft.insurer.trim(),
       policyName: policyDraft.policyName.trim(),
+      policyNumber: policyDraft.policyNumber?.trim() ?? '',
       renewalDate: toIsoDate(renewalDate),
       premium: Number(policyDraft.premium) || 0,
       coverageAmount:
@@ -478,6 +484,14 @@ export function InsuranceTracker({
     setPolicyDraft(EMPTY_POLICY)
     setRenewalDate(atLocalNoon(new Date()))
     setError(null)
+  }
+
+  const copyPolicyNumber = async (policyNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(policyNumber)
+    } catch {
+      setError('Could not copy policy number')
+    }
   }
 
   const handleOpenDoc = async (doc: InsuranceDocument) => {
@@ -660,6 +674,18 @@ export function InsuranceTracker({
                 />
               </label>
               <label className="expense-field">
+                <span>Policy number</span>
+                <input
+                  value={uploadPolicy.policyNumber ?? ''}
+                  onChange={(e) =>
+                    setUploadPolicy((prev) => ({ ...prev, policyNumber: e.target.value }))
+                  }
+                  placeholder="Optional"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </label>
+              <label className="expense-field">
                 <span>Insurer</span>
                 <input
                   value={uploadPolicy.insurer}
@@ -679,7 +705,7 @@ export function InsuranceTracker({
                 }
               />
               <label className="expense-field">
-                <span>Coverage amount</span>
+                <span>{getCoverageFieldMeta(uploadPolicy.policyType).label}</span>
                 <input
                   inputMode="decimal"
                   value={uploadPolicy.coverageAmount ?? ''}
@@ -691,6 +717,9 @@ export function InsuranceTracker({
                   }
                   placeholder="Optional"
                 />
+                <span className="expense-field-hint">
+                  {getCoverageFieldMeta(uploadPolicy.policyType).hint}
+                </span>
               </label>
               <label className="expense-field">
                 <span>Premium</span>
@@ -773,6 +802,18 @@ export function InsuranceTracker({
               />
             </label>
             <label className="expense-field">
+              <span>Policy number</span>
+              <input
+                value={policyDraft.policyNumber ?? ''}
+                onChange={(e) =>
+                  setPolicyDraft((prev) => ({ ...prev, policyNumber: e.target.value }))
+                }
+                placeholder="Optional"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <label className="expense-field">
               <span>Insurer</span>
               <input
                 value={policyDraft.insurer}
@@ -801,7 +842,7 @@ export function InsuranceTracker({
               }
             />
             <label className="expense-field">
-              <span>Coverage amount</span>
+              <span>{getCoverageFieldMeta(policyDraft.policyType).label}</span>
               <input
                 inputMode="decimal"
                 value={policyDraft.coverageAmount ?? ''}
@@ -813,6 +854,9 @@ export function InsuranceTracker({
                 }
                 placeholder="Optional"
               />
+              <span className="expense-field-hint">
+                {getCoverageFieldMeta(policyDraft.policyType).hint}
+              </span>
             </label>
             <label className="expense-field">
               <span>Premium</span>
@@ -883,7 +927,7 @@ export function InsuranceTracker({
                 <strong>{activePolicies.length}</strong>
               </div>
               <div className="insurance-metric">
-                <span className="expenses-total-label">Total coverage</span>
+                <span className="expenses-total-label">Total sum insured</span>
                 <strong>
                   {totalCoverage > 0 ? `$${formatMoney(totalCoverage)}` : '—'}
                 </strong>
@@ -921,7 +965,7 @@ export function InsuranceTracker({
                         <span className="insurance-list-meta">
                           {getPolicyTypeLabel(policy.policyType)}
                           {policy.coverageAmount != null
-                            ? ` · $${formatMoney(policy.coverageAmount)} cover`
+                            ? ` · $${formatMoney(policy.coverageAmount)} ${getCoverageFieldMeta(policy.policyType).listLabel.toLowerCase()}`
                             : ''}
                           {` · $${formatMoney(annualPremium(policy))}/yr`}
                         </span>
@@ -1043,6 +1087,20 @@ export function InsuranceTracker({
                             >
                               Edit
                             </button>
+                            {policy.policyNumber ? (
+                              <button
+                                type="button"
+                                className="menu-item"
+                                role="menuitem"
+                                data-haptic="select"
+                                onClick={() => {
+                                  setPolicyMenuId(null)
+                                  void copyPolicyNumber(policy.policyNumber)
+                                }}
+                              >
+                                Copy policy number
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               className="menu-item menu-item-danger"
@@ -1062,6 +1120,20 @@ export function InsuranceTracker({
                       )}
                     </div>
                   </div>
+                  {policy.policyNumber ? (
+                    <div className="insurance-policy-number-row">
+                      <span className="expenses-total-label">Policy no.</span>
+                      <code className="insurance-policy-number">{policy.policyNumber}</code>
+                      <button
+                        type="button"
+                        className="insurance-copy-btn"
+                        data-haptic="select"
+                        onClick={() => void copyPolicyNumber(policy.policyNumber)}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ) : null}
                   <button
                     type="button"
                     className="insurance-policy-card-meta insurance-policy-card-meta-button"
@@ -1069,7 +1141,9 @@ export function InsuranceTracker({
                     onClick={() => startEditPolicy(policy)}
                   >
                     <div>
-                      <span className="expenses-total-label">Coverage</span>
+                      <span className="expenses-total-label">
+                        {getCoverageFieldMeta(policy.policyType).listLabel}
+                      </span>
                       <strong>
                         {policy.coverageAmount == null
                           ? '—'
