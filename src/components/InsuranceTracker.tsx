@@ -105,6 +105,84 @@ function AccordionChevron() {
   )
 }
 
+function DocumentOutlineIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M4.5 2.75h5.1L11.5 4.65v8.6a.9.9 0 0 1-.9.9h-6.1a.9.9 0 0 1-.9-.9v-9.5a.9.9 0 0 1 .9-.9Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.4 2.85V4.7h1.9"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.75 7.25h4.5M5.75 9.5h4.5M5.75 11.75h2.75"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function CopyIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect
+        x="5.25"
+        y="5.25"
+        width="7.5"
+        height="7.5"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M3.5 10.5h-.25A1.75 1.75 0 0 1 1.5 8.75v-5A1.75 1.75 0 0 1 3.25 2h5A1.75 1.75 0 0 1 10 3.75V4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="7" cy="7" r="4.25" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="m10.2 10.2 3 3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function FilterIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M2.5 4h11M4.5 8h7M6.25 12h3.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="5.25" cy="4" r="1.15" fill="currentColor" />
+      <circle cx="10.75" cy="8" r="1.15" fill="currentColor" />
+      <circle cx="8" cy="12" r="1.15" fill="currentColor" />
+    </svg>
+  )
+}
+
 const EMPTY_POLICY: InsurancePolicyInput = {
   insurer: '',
   policyName: '',
@@ -162,6 +240,8 @@ export function InsuranceTracker({
   const [showPolicyForm, setShowPolicyForm] = useState(false)
   const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [policySearch, setPolicySearch] = useState('')
+  const [policyStatusFilter, setPolicyStatusFilter] = useState<'all' | PolicyStatusId>('all')
   const [docFilter, setDocFilter] = useState<DocumentFilter>('all')
   const [policyDocFilter, setPolicyDocFilter] = useState<string>('all')
   const [docMenuId, setDocMenuId] = useState<string | null>(null)
@@ -169,7 +249,6 @@ export function InsuranceTracker({
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [renaming, setRenaming] = useState(false)
-  const [policyMenuId, setPolicyMenuId] = useState<string | null>(null)
   const [pendingScreen, setPendingScreen] = useState<InsuranceScreen | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -283,6 +362,28 @@ export function InsuranceTracker({
     })
   }, [documents, docFilter, policyDocFilter, policies, search])
 
+  const filteredPolicies = useMemo(() => {
+    const query = policySearch.trim().toLowerCase()
+    return policies.filter((policy) => {
+      if (policyStatusFilter !== 'all' && policy.status !== policyStatusFilter) return false
+      if (!query) return true
+      return (
+        policy.policyName.toLowerCase().includes(query) ||
+        policy.insurer.toLowerCase().includes(query) ||
+        policy.policyNumber.toLowerCase().includes(query) ||
+        getPolicyTypeLabel(policy.policyType).toLowerCase().includes(query)
+      )
+    })
+  }, [policies, policySearch, policyStatusFilter])
+
+  const policyFilterOptions = useMemo(
+    () => [
+      { id: 'all' as const, label: 'All' },
+      ...POLICY_STATUSES.map((status) => ({ id: status.id, label: status.label })),
+    ],
+    []
+  )
+
   const openUpload = () => {
     setError(null)
     setShowUpload(true)
@@ -299,14 +400,12 @@ export function InsuranceTracker({
   const openUploadForPolicy = (policyId: string) => {
     setError(null)
     setShowPolicyForm(false)
-    setPolicyMenuId(null)
     setShowUpload(true)
     setAttachMode('existing')
     setLinkPolicyId(policyId)
   }
 
   const viewPolicyDocuments = (policyId: string) => {
-    setPolicyMenuId(null)
     setPolicyDocFilter(policyId)
     setDocFilter('all')
     setSearch('')
@@ -534,7 +633,6 @@ export function InsuranceTracker({
 
   const openAddPolicy = () => {
     setError(null)
-    setPolicyMenuId(null)
     setEditingPolicyId(null)
     setPolicyDraft(EMPTY_POLICY)
     setRenewalDate(atLocalNoon(new Date()))
@@ -543,7 +641,6 @@ export function InsuranceTracker({
 
   const startEditPolicy = (policy: InsurancePolicy) => {
     setError(null)
-    setPolicyMenuId(null)
     setEditingPolicyId(policy.id)
     setPolicyDraft(policyToDraft(policy))
     setRenewalDate(renewalDateFromPolicy(policy))
@@ -1111,6 +1208,37 @@ export function InsuranceTracker({
                 ? 'Save changes'
                 : 'Save policy'}
           </button>
+
+          {editingPolicyId ? (
+            <div className="insurance-policy-form-secondary">
+              <button
+                type="button"
+                className="insurance-link"
+                data-haptic="select"
+                onClick={() => {
+                  const id = editingPolicyId
+                  cancelPolicyForm()
+                  openUploadForPolicy(id)
+                }}
+              >
+                Upload document
+              </button>
+              <button
+                type="button"
+                className="insurance-link insurance-link-danger"
+                data-haptic="light"
+                onClick={() => {
+                  const policy = policies.find((item) => item.id === editingPolicyId)
+                  if (!policy) return
+                  if (confirm(`Delete “${policy.policyName}”?`)) {
+                    void onDeletePolicy(policy.id).then(() => cancelPolicyForm())
+                  }
+                }}
+              >
+                Delete policy
+              </button>
+            </div>
+          ) : null}
         </section>
       ) : screen === 'overview' ? (
         <>
@@ -1225,247 +1353,152 @@ export function InsuranceTracker({
           </button>
         </>
       ) : screen === 'policies' ? (
-        <>
+        <div className="insurance-policies-stack">
+          <header className="insurance-policies-header">
+            <div className="insurance-policies-heading">
+              <h2 className="expenses-title">Your policies</h2>
+              <span className="insurance-policies-count">
+                {activePolicies.length} active{' '}
+                {activePolicies.length === 1 ? 'policy' : 'policies'}
+              </span>
+            </div>
+            <p className="expenses-subtitle">
+              A summary of the insurance plans you have.
+            </p>
+          </header>
+
+          <div className="insurance-policies-toolbar">
+            <label className="insurance-search insurance-policies-search">
+              <span className="visually-hidden">Search policies</span>
+              <SearchIcon />
+              <input
+                value={policySearch}
+                onChange={(e) => setPolicySearch(e.target.value)}
+                placeholder="Search policies"
+              />
+            </label>
+            <div className="insurance-policies-filter">
+              <FilterIcon />
+              <MenuSelect
+                label="Filter policies"
+                variant="compact"
+                value={policyStatusFilter}
+                options={policyFilterOptions}
+                onChange={setPolicyStatusFilter}
+              />
+            </div>
+          </div>
+
           {policies.length === 0 ? (
             <p className="insurance-empty-card">No policies yet. Add one or upload a document.</p>
+          ) : filteredPolicies.length === 0 ? (
+            <p className="insurance-empty-card">No policies match this search.</p>
           ) : (
             <ul className="insurance-policy-list">
-              {policies.map((policy) => (
-                <li key={policy.id} className="insurance-policy-card">
-                  <div className="insurance-policy-card-top">
-                    <button
-                      type="button"
-                      className="insurance-policy-card-main"
-                      onClick={() => startEditPolicy(policy)}
-                    >
-                      <PolicyMark name={policy.insurer || policy.policyName} />
-                      <div className="insurance-policy-card-copy">
-                        <div className="insurance-policy-card-title-row">
-                          <h3>{policy.policyName}</h3>
-                          <span className={`insurance-status insurance-status-${policy.status}`}>
-                            {getPolicyStatusLabel(policy.status)}
-                          </span>
-                        </div>
-                        <p>
-                          {policy.insurer || 'Insurer'} · {getPolicyTypeLabel(policy.policyType)}
-                          {policy.policyNumber ? ` · No. ${policy.policyNumber}` : ''}
-                        </p>
-                      </div>
-                    </button>
-                    <div className="insurance-policy-menu">
+              {filteredPolicies.map((policy) => {
+                const linkedDocs = documentsByPolicyId.get(policy.id) ?? []
+                const docCount = linkedDocs.length
+                return (
+                  <li key={policy.id} className="insurance-policy-card">
+                    <div className="insurance-policy-card-body">
                       <button
                         type="button"
-                        className="header-btn menu-toggle"
-                        data-haptic="light"
-                        aria-label={`Actions for ${policy.policyName}`}
-                        onClick={() =>
-                          setPolicyMenuId((current) =>
-                            current === policy.id ? null : policy.id
-                          )
-                        }
+                        className="insurance-policy-card-main"
+                        onClick={() => startEditPolicy(policy)}
                       >
-                        <MenuDots />
+                        <div className="insurance-policy-card-top">
+                          <PolicyMark name={policy.insurer || policy.policyName} />
+                          <div className="insurance-policy-card-copy">
+                            <h3>{policy.policyName}</h3>
+                            <p>
+                              {policy.insurer || 'Insurer'} ·{' '}
+                              {getPolicyTypeLabel(policy.policyType)}
+                            </p>
+                          </div>
+                          <div className="insurance-policy-card-end">
+                            <span
+                              className={`insurance-status insurance-status-${policy.status}`}
+                            >
+                              {getPolicyStatusLabel(policy.status)}
+                            </span>
+                            <AccordionChevron />
+                          </div>
+                        </div>
                       </button>
-                      {policyMenuId === policy.id && (
-                        <>
-                          <div
-                            className="menu-backdrop"
-                            onClick={() => setPolicyMenuId(null)}
-                          />
-                          <div
-                            className="header-menu insurance-policy-menu-panel"
-                            role="menu"
-                          >
+
+                      <div className="insurance-policy-card-meta">
+                        <button
+                          type="button"
+                          className="insurance-policy-meta-cell"
+                          onClick={() => startEditPolicy(policy)}
+                        >
+                          <span className="expenses-total-label">
+                            {getCoverageFieldMeta(policy.policyType).listLabel}
+                          </span>
+                          <strong>
+                            {policy.coverageAmount == null
+                              ? '—'
+                              : `$${formatMoney(policy.coverageAmount)}`}
+                          </strong>
+                        </button>
+                        <button
+                          type="button"
+                          className="insurance-policy-meta-cell"
+                          onClick={() => startEditPolicy(policy)}
+                        >
+                          <span className="expenses-total-label">Yearly premium</span>
+                          <strong>${formatMoney(annualPremium(policy))}</strong>
+                        </button>
+                        <div className="insurance-policy-meta-cell insurance-policy-card-number">
+                          <span className="expenses-total-label">Policy number</span>
+                          <div className="insurance-policy-number-value">
                             <button
                               type="button"
-                              className="menu-item"
-                              role="menuitem"
-                              data-haptic="select"
+                              className="insurance-policy-number-hit"
                               onClick={() => startEditPolicy(policy)}
                             >
-                              Edit
+                              {policy.policyNumber ? (
+                                <strong className="insurance-policy-number">
+                                  {policy.policyNumber}
+                                </strong>
+                              ) : (
+                                <strong className="insurance-policy-number-empty-inline">
+                                  Add number
+                                </strong>
+                              )}
                             </button>
                             {policy.policyNumber ? (
                               <button
                                 type="button"
-                                className="menu-item"
-                                role="menuitem"
+                                className="insurance-copy-icon-btn"
                                 data-haptic="select"
-                                onClick={() => {
-                                  setPolicyMenuId(null)
-                                  void copyPolicyNumber(policy.policyNumber)
-                                }}
+                                aria-label={`Copy policy number ${policy.policyNumber}`}
+                                title="Copy policy number"
+                                onClick={() => void copyPolicyNumber(policy.policyNumber)}
                               >
-                                Copy policy number
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              className="menu-item"
-                              role="menuitem"
-                              data-haptic="select"
-                              onClick={() => viewPolicyDocuments(policy.id)}
-                            >
-                              View documents
-                            </button>
-                            <button
-                              type="button"
-                              className="menu-item"
-                              role="menuitem"
-                              data-haptic="select"
-                              onClick={() => openUploadForPolicy(policy.id)}
-                            >
-                              Upload document
-                            </button>
-                            <button
-                              type="button"
-                              className="menu-item menu-item-danger"
-                              role="menuitem"
-                              data-haptic="light"
-                              onClick={() => {
-                                setPolicyMenuId(null)
-                                if (confirm(`Delete “${policy.policyName}”?`)) {
-                                  void onDeletePolicy(policy.id)
-                                }
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div
-                    className="insurance-policy-number-row"
-                    onClick={(event) => event.stopPropagation()}
-                    onPointerDown={(event) => event.stopPropagation()}
-                  >
-                    <span className="expenses-total-label">Policy number</span>
-                    {policy.policyNumber ? (
-                      <>
-                        <code className="insurance-policy-number">{policy.policyNumber}</code>
-                        <button
-                          type="button"
-                          className="insurance-copy-icon-btn"
-                          data-haptic="select"
-                          aria-label={`Copy policy number ${policy.policyNumber}`}
-                          title="Copy policy number"
-                          onClick={(event) => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            void copyPolicyNumber(policy.policyNumber)
-                          }}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                            <rect
-                              x="5.25"
-                              y="5.25"
-                              width="7.5"
-                              height="7.5"
-                              rx="1.5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                            />
-                            <path
-                              d="M3.5 10.5h-.25A1.75 1.75 0 0 1 1.5 8.75v-5A1.75 1.75 0 0 1 3.25 2h5A1.75 1.75 0 0 1 10 3.75V4"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="insurance-policy-number-empty"
-                        onClick={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          startEditPolicy(policy)
-                        }}
-                      >
-                        Add policy number
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="insurance-policy-card-meta insurance-policy-card-meta-button"
-                    onClick={() => startEditPolicy(policy)}
-                  >
-                    <div>
-                      <span className="expenses-total-label">
-                        {getCoverageFieldMeta(policy.policyType).listLabel}
-                      </span>
-                      <strong>
-                        {policy.coverageAmount == null
-                          ? '—'
-                          : `$${formatMoney(policy.coverageAmount)}`}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="expenses-total-label">Yearly premium</span>
-                      <strong>${formatMoney(annualPremium(policy))}</strong>
-                    </div>
-                  </button>
-
-                  {(() => {
-                    const linkedDocs = documentsByPolicyId.get(policy.id) ?? []
-                    return (
-                      <div className="insurance-policy-docs">
-                        <div className="insurance-policy-docs-heading">
-                          <span className="expenses-total-label">
-                            Documents · {linkedDocs.length}
-                          </span>
-                          <div className="insurance-policy-docs-actions">
-                            <button
-                              type="button"
-                              className="insurance-link"
-                              data-haptic="select"
-                              onClick={() => openUploadForPolicy(policy.id)}
-                            >
-                              Upload
-                            </button>
-                            {linkedDocs.length > 0 ? (
-                              <button
-                                type="button"
-                                className="insurance-link"
-                                data-haptic="select"
-                                onClick={() => viewPolicyDocuments(policy.id)}
-                              >
-                                View all
+                                <CopyIcon />
                               </button>
                             ) : null}
                           </div>
                         </div>
-                        {linkedDocs.length === 0 ? (
-                          <p className="insurance-policy-docs-empty">
-                            No documents tagged to this policy yet.
-                          </p>
-                        ) : (
-                          <ul className="insurance-policy-docs-list">
-                            {linkedDocs.slice(0, 3).map((doc) => (
-                              <li key={doc.id}>
-                                <button
-                                  type="button"
-                                  className="insurance-policy-doc-row"
-                                  onClick={() => void handleOpenDoc(doc)}
-                                >
-                                  <FileTypeIcon type={doc.fileType} />
-                                  <span className="insurance-policy-doc-name">{doc.fileName}</span>
-                                  <span className="insurance-policy-doc-open">Open</span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
                       </div>
-                    )
-                  })()}
-                </li>
-              ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="insurance-policy-docs-row"
+                      data-haptic="select"
+                      onClick={() => viewPolicyDocuments(policy.id)}
+                    >
+                      <span className="insurance-policy-docs-row-label">
+                        <DocumentOutlineIcon />
+                        {docCount === 1 ? '1 document' : `${docCount} documents`}
+                      </span>
+                      <AccordionChevron />
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
 
@@ -1475,9 +1508,9 @@ export function InsuranceTracker({
             data-haptic="light"
             onClick={openAddPolicy}
           >
-            + Add policy
+            + Add insurance policy
           </button>
-        </>
+        </div>
       ) : (
         <>
           <div className="insurance-docs-toolbar">
