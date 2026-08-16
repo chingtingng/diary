@@ -3149,13 +3149,13 @@ button.year-board-cell:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .insurance-policies-header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   margin: 0;
 }
 
@@ -3168,18 +3168,19 @@ button.year-board-cell:hover {
 
 .insurance-policies-heading .expenses-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.08rem;
 }
 
 .insurance-policies-count {
   flex-shrink: 0;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 500;
   color: var(--ink-soft);
 }
 
 .insurance-policies-header .expenses-subtitle {
   margin: 0;
+  font-size: 0.74rem;
 }
 
 .insurance-policies-toolbar {
@@ -3188,7 +3189,7 @@ button.year-board-cell:hover {
   gap: 0;
   min-width: 0;
   padding: 0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgb(255 255 255 / 88%);
   border: 1px solid var(--line);
   overflow: visible;
@@ -3199,8 +3200,8 @@ button.year-board-cell:hover {
   min-width: 0;
   border: none;
   background: transparent;
-  padding: 10px 12px;
-  border-radius: 16px;
+  padding: 8px 12px;
+  border-radius: 14px;
 }
 
 .insurance-policies-filter {
@@ -3265,7 +3266,7 @@ button.year-board-cell:hover {
   width: 100%;
   min-width: 0;
   text-align: left;
-  padding: 12px 12px 10px;
+  padding: 10px 12px 8px;
 }
 
 .insurance-policy-card-end {
@@ -3373,7 +3374,7 @@ button.year-board-cell:hover {
   gap: 8px;
   width: 100%;
   margin: 0;
-  padding: 10px 12px 12px;
+  padding: 8px 12px 10px;
   border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
   text-align: left;
 }
@@ -3479,7 +3480,7 @@ button.year-board-cell:hover {
   gap: 10px;
   width: 100%;
   margin: 0;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: none;
   border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
   background: transparent;
@@ -3694,12 +3695,14 @@ button.year-board-cell:hover {
   line-height: 1.25;
 }
 
-.insurance-view {
-  gap: 10px;
+.insurance-policies-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.insurance-view .expense-add-toggle {
-  margin-top: 2px;
+.insurance-policies-stack .expense-add-toggle {
+  margin-top: 0;
   padding: 10px 14px;
 }
 

@@ -1353,7 +1353,7 @@ export function InsuranceTracker({
           </button>
         </>
       ) : screen === 'policies' ? (
-        <>
+        <div className="insurance-policies-stack">
           <header className="insurance-policies-header">
             <div className="insurance-policies-heading">
               <h2 className="expenses-title">Your policies</h2>
@@ -1508,7 +1508,7 @@ export function InsuranceTracker({
           >
             + Add insurance policy
           </button>
-        </>
+        </div>
       ) : (
         <>
           <div className="insurance-docs-toolbar">
