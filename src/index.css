@@ -579,7 +579,7 @@ button:focus {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 10px var(--content-inset) 0;
+  padding: 10px var(--content-inset) calc(10px + var(--safe-bottom));
 }
 
 .journal-tabs {
@@ -631,9 +631,11 @@ button:focus {
   flex: 1;
   display: grid;
   grid-template-columns: minmax(260px, 320px) 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
   overflow: hidden;
+  min-height: 0;
 }
 
 .panel {
@@ -673,6 +675,8 @@ button:focus {
   padding-left: 0;
   padding-right: 0;
   padding-top: 10px;
+  padding-bottom: 10px;
+  min-height: 0;
 }
 
 .journal-shell .mobile-back {
@@ -2380,7 +2384,11 @@ button.year-board-cell:hover {
   .list-panel,
   .editor-panel {
     display: none;
-    height: calc(100dvh - 120px - var(--safe-top));
+    /* Fill the flex/grid slot instead of a brittle 100dvh guess — otherwise the
+       card’s bottom (and rounded corners) get clipped by overflow:hidden parents. */
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
   }
 
   .list-panel.visible,
