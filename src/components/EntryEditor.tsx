@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { format, parseISO } from 'date-fns'
 import type { Entry, EntryPatch } from '../types/entry'
 import type { MoodId } from '../lib/moods'
 import { getMood } from '../lib/moods'
 import { atLocalNoon } from '../lib/dates'
+import {
+  clearJournalCaretInset,
+  syncJournalCaret,
+} from '../lib/journalCaret'
 import { DateField } from './DateField'
 import { MoodPicker } from './MoodPicker'
 import { MenuDots } from './MenuDots'
@@ -40,8 +44,59 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
   const [saved, setSaved] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editingDate, setEditingDate] = useState(false)
+  const [focused, setFocused] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  const syncCaret = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+    // Two frames: first applies padding, second scrolls against the new scrollHeight.
+    requestAnimationFrame(() => {
+      syncJournalCaret(el)
+      requestAnimationFrame(() => syncJournalCaret(el))
+    })
+  }, [])
+
+  const clearSettleTimers = useCallback(() => {
+    for (const timer of settleTimers.current) window.clearTimeout(timer)
+    settleTimers.current = []
+  }, [])
+
+  const settleCaretAfterFocus = useCallback(() => {
+    clearSettleTimers()
+    // iOS keyboard + visualViewport keep moving after the focus event.
+    const delays = [0, 50, 100, 160, 240, 360, 500, 700, 1000]
+    settleTimers.current = delays.map((delay) => window.setTimeout(() => syncCaret(), delay))
+  }, [clearSettleTimers, syncCaret])
+
+  useEffect(() => () => clearSettleTimers(), [clearSettleTimers])
+
+  useEffect(() => {
+    if (!focused) {
+      clearSettleTimers()
+      clearJournalCaretInset(textareaRef.current)
+      return
+    }
+
+    const onViewport = () => syncCaret()
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', onViewport)
+    vv?.addEventListener('scroll', onViewport)
+    window.addEventListener('resize', onViewport)
+
+    // Keep syncing while focused — Safari adjusts VV during typing too.
+    const poll = window.setInterval(() => syncCaret(), 100)
+    syncCaret()
+
+    return () => {
+      vv?.removeEventListener('resize', onViewport)
+      vv?.removeEventListener('scroll', onViewport)
+      window.removeEventListener('resize', onViewport)
+      window.clearInterval(poll)
+    }
+  }, [focused, syncCaret, clearSettleTimers])
 
   useEffect(() => {
     if (saveTimer.current) {
@@ -93,6 +148,7 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
     saveTimer.current = setTimeout(() => {
       persist({ content: text })
     }, 800)
+    syncCaret()
   }
 
   const handleMood = async (next: MoodId | null) => {
@@ -142,7 +198,7 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
       className="editor"
       style={
         moodMeta
-          ? ({ '--accent-soft': moodMeta.colorSoft, '--accent': moodMeta.color } as React.CSSProperties)
+          ? ({ '--accent-soft': moodMeta.colorSoft, '--accent': moodMeta.color } as CSSProperties)
           : undefined
       }
     >
@@ -232,6 +288,18 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
         className="editor-textarea"
         value={content}
         onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => {
+          setFocused(true)
+          settleCaretAfterFocus()
+        }}
+        onBlur={() => {
+          setFocused(false)
+          clearSettleTimers()
+          clearJournalCaretInset(textareaRef.current)
+        }}
+        onClick={syncCaret}
+        onSelect={syncCaret}
+        onKeyUp={syncCaret}
         placeholder="What's on your mind today?"
         spellCheck
       />
