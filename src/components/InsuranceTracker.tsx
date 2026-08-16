@@ -171,14 +171,11 @@ function FilterIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path
-        d="M2.5 4h11M4.5 8h7M6.25 12h3.5"
+        d="M2.5 4.25h11M4.25 8h7.5M6 11.75h4"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <circle cx="5.25" cy="4" r="1.15" fill="currentColor" />
-      <circle cx="10.75" cy="8" r="1.15" fill="currentColor" />
-      <circle cx="8" cy="12" r="1.15" fill="currentColor" />
     </svg>
   )
 }
@@ -1446,8 +1443,8 @@ export function InsuranceTracker({
                           className="insurance-policy-meta-cell"
                           onClick={() => startEditPolicy(policy)}
                         >
-                          <span className="expenses-total-label">Yearly premium</span>
-                          <strong>${formatMoney(annualPremium(policy))}</strong>
+                          <span className="expenses-total-label">Premium</span>
+                          <strong>${formatMoney(annualPremium(policy))}/yr</strong>
                         </button>
                         <div className="insurance-policy-meta-cell insurance-policy-card-number">
                           <span className="expenses-total-label">Policy number</span>
