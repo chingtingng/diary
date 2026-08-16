@@ -133,7 +133,7 @@ function DocumentOutlineIcon() {
 
 function CopyIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
       <rect
         x="5.25"
         y="5.25"
@@ -1450,34 +1450,36 @@ export function InsuranceTracker({
                           <strong>${formatMoney(annualPremium(policy))}</strong>
                         </button>
                         <div className="insurance-policy-meta-cell insurance-policy-card-number">
-                          <button
-                            type="button"
-                            className="insurance-policy-meta-cell-hit"
-                            onClick={() => startEditPolicy(policy)}
-                          >
-                            <span className="expenses-total-label">Policy number</span>
-                            {policy.policyNumber ? (
-                              <strong className="insurance-policy-number">
-                                {policy.policyNumber}
-                              </strong>
-                            ) : (
-                              <strong className="insurance-policy-number-empty-inline">
-                                Add number
-                              </strong>
-                            )}
-                          </button>
-                          {policy.policyNumber ? (
+                          <span className="expenses-total-label">Policy number</span>
+                          <div className="insurance-policy-number-value">
                             <button
                               type="button"
-                              className="insurance-copy-icon-btn"
-                              data-haptic="select"
-                              aria-label={`Copy policy number ${policy.policyNumber}`}
-                              title="Copy policy number"
-                              onClick={() => void copyPolicyNumber(policy.policyNumber)}
+                              className="insurance-policy-number-hit"
+                              onClick={() => startEditPolicy(policy)}
                             >
-                              <CopyIcon />
+                              {policy.policyNumber ? (
+                                <strong className="insurance-policy-number">
+                                  {policy.policyNumber}
+                                </strong>
+                              ) : (
+                                <strong className="insurance-policy-number-empty-inline">
+                                  Add number
+                                </strong>
+                              )}
                             </button>
-                          ) : null}
+                            {policy.policyNumber ? (
+                              <button
+                                type="button"
+                                className="insurance-copy-icon-btn"
+                                data-haptic="select"
+                                aria-label={`Copy policy number ${policy.policyNumber}`}
+                                title="Copy policy number"
+                                onClick={() => void copyPolicyNumber(policy.policyNumber)}
+                              >
+                                <CopyIcon />
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </div>
