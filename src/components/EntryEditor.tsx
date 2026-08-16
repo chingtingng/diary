@@ -46,6 +46,8 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const keyboardInset = useKeyboardBottomInset(focused)
 
+  const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+
   const keepCaretVisible = useCallback(() => {
     const el = textareaRef.current
     if (!el) return
@@ -95,12 +97,14 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
       mirror.style.overflowWrap = 'break-word'
       mirror.style.width = `${el.clientWidth}px`
       mirror.style.height = 'auto'
+      // Exclude textarea padding from the mirror so caret Y matches content.
+      mirror.style.paddingBottom = '0px'
       mirror.textContent = el.value.slice(0, el.selectionEnd)
       const marker = document.createElement('span')
       marker.textContent = '\u200b'
       mirror.appendChild(marker)
       document.body.appendChild(mirror)
-      const caretTopInContent = marker.offsetTop
+      const caretTopInContent = marker.offsetTop + Number.parseFloat(style.paddingTop || '0')
       document.body.removeChild(mirror)
 
       const rect = el.getBoundingClientRect()
@@ -114,6 +118,22 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
       }
     })
   }, [])
+
+  const clearSettleTimers = useCallback(() => {
+    for (const timer of settleTimers.current) window.clearTimeout(timer)
+    settleTimers.current = []
+  }, [])
+
+  const settleCaretAfterFocus = useCallback(() => {
+    clearSettleTimers()
+    // iOS keyboard + visualViewport settle over several hundred ms after focus.
+    const delays = [0, 50, 100, 200, 350, 500, 700]
+    settleTimers.current = delays.map((delay) =>
+      window.setTimeout(() => keepCaretVisible(), delay)
+    )
+  }, [clearSettleTimers, keepCaretVisible])
+
+  useEffect(() => () => clearSettleTimers(), [clearSettleTimers])
 
   useEffect(() => {
     if (saveTimer.current) {
@@ -169,9 +189,12 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
   }
 
   useEffect(() => {
-    if (!focused) return
+    if (!focused) {
+      clearSettleTimers()
+      return
+    }
     keepCaretVisible()
-  }, [focused, keyboardInset, keepCaretVisible])
+  }, [focused, keyboardInset, keepCaretVisible, clearSettleTimers])
 
   const handleMood = async (next: MoodId | null) => {
     setMood(next)
@@ -313,8 +336,14 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
         className="editor-textarea"
         value={content}
         onChange={(e) => handleChange(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onFocus={() => {
+          setFocused(true)
+          settleCaretAfterFocus()
+        }}
+        onBlur={() => {
+          setFocused(false)
+          clearSettleTimers()
+        }}
         onSelect={keepCaretVisible}
         onKeyUp={keepCaretVisible}
         placeholder="What's on your mind today?"

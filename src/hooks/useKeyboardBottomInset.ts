@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react'
  * Extra room for mobile browser chrome that sits inside the visual viewport
  * while typing (notably Safari’s floating URL pill above the keyboard).
  */
-export const FLOATING_CHROME_BUFFER_PX = 64
+export const FLOATING_CHROME_BUFFER_PX = 80
+
+/** How long to keep polling after focus while iOS finishes keyboard + VV settle. */
+const FOCUS_SETTLE_MS = 800
+const FOCUS_POLL_MS = 50
 
 function readBottomInset(active: boolean): number {
   if (!active) return 0
@@ -45,10 +49,17 @@ export function useKeyboardBottomInset(active: boolean): number {
     vv?.addEventListener('scroll', update)
     window.addEventListener('resize', update)
 
+    // Safari often moves the visual viewport after focus without a reliable
+    // single event; poll briefly while the keyboard animation settles.
+    const poll = window.setInterval(update, FOCUS_POLL_MS)
+    const stopPoll = window.setTimeout(() => window.clearInterval(poll), FOCUS_SETTLE_MS)
+
     return () => {
       vv?.removeEventListener('resize', update)
       vv?.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
+      window.clearInterval(poll)
+      window.clearTimeout(stopPoll)
     }
   }, [active])
 

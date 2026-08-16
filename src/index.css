@@ -1684,11 +1684,10 @@ button:focus {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 20px 22px calc(18px + var(--safe-bottom) + var(--editor-keyboard-inset, 0px));
+  padding: 20px 22px calc(18px + var(--safe-bottom));
   background:
     linear-gradient(180deg, var(--accent-soft, transparent) 0%, transparent 120px);
   border-radius: inherit;
-  transition: padding-bottom 120ms ease-out;
 }
 
 .editor-header {
@@ -1835,6 +1834,9 @@ button:focus {
   line-height: 1.75;
   color: var(--ink);
   min-height: 200px;
+  /* Inset must live inside the textarea so short entries can still scroll
+     the caret above Safari’s floating URL pill / keyboard chrome. */
+  padding-bottom: var(--editor-keyboard-inset, 0px);
 }
 
 .editor-textarea::placeholder {
