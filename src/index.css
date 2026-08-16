@@ -3174,8 +3174,8 @@ button.year-board-cell:hover {
 .insurance-policies-count {
   flex-shrink: 0;
   font-size: 0.76rem;
-  font-weight: 500;
-  color: var(--ink-soft);
+  font-weight: 600;
+  color: #2f7a4d;
 }
 
 .insurance-policies-header .expenses-subtitle {
@@ -3188,20 +3188,34 @@ button.year-board-cell:hover {
   align-items: center;
   gap: 0;
   min-width: 0;
-  padding: 0;
-  border-radius: 14px;
-  background: rgb(255 255 255 / 88%);
+  height: 36px;
+  padding: 0 4px 0 10px;
+  border-radius: 999px;
+  background: #ffffff;
   border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgb(28 36 48 / 3%);
   overflow: visible;
 }
 
-.insurance-policies-search {
+.insurance-policies-toolbar .insurance-search.insurance-policies-search {
   flex: 1;
   min-width: 0;
+  height: 100%;
   border: none;
   background: transparent;
-  padding: 8px 12px;
-  border-radius: 14px;
+  padding: 0 6px 0 0;
+  border-radius: 0;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+
+.insurance-policies-toolbar .insurance-policies-search input {
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.insurance-policies-toolbar .insurance-policies-search input::placeholder {
+  color: color-mix(in srgb, var(--ink-soft) 78%, transparent);
 }
 
 .insurance-policies-filter {
@@ -3209,28 +3223,45 @@ button.year-board-cell:hover {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  padding: 4px 8px 4px 4px;
+  height: 100%;
+  padding: 0 2px 0 8px;
   color: var(--ink-soft);
-  border-left: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+}
+
+.insurance-policies-filter .menu-select {
+  height: 100%;
+  align-items: center;
 }
 
 .insurance-policies-filter .menu-select-trigger {
-  padding: 6px 8px;
+  height: 28px;
+  min-height: 0;
+  padding: 0 6px;
   background: transparent;
   color: var(--ink-soft);
   border-color: transparent;
-  gap: 4px;
+  border-radius: 999px;
+  gap: 3px;
+  box-shadow: none;
 }
 
 .insurance-policies-filter .menu-select-trigger:hover,
 .insurance-policies-filter .menu-select-trigger.open {
   background: var(--mist);
   color: var(--ink);
+  border-color: transparent;
 }
 
 .insurance-policies-filter .menu-select-value {
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1;
+}
+
+.insurance-policies-filter .menu-select-chevron {
+  width: 10px;
+  height: 10px;
 }
 
 .insurance-policy-card {
@@ -3353,8 +3384,8 @@ button.year-board-cell:hover {
 }
 
 .insurance-status-active {
-  background: #2f9d5c;
-  color: #ffffff;
+  background: #e5f6ec;
+  color: #2f7a4d;
 }
 
 .insurance-status-pending {
@@ -3600,15 +3631,23 @@ button.year-board-cell:hover {
 
 .insurance-copy-icon-btn {
   flex: 0 0 auto;
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
   margin: 0;
+  padding: 0;
+  line-height: 0;
   border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
   background: color-mix(in srgb, var(--mist) 70%, white);
   color: var(--ink-soft);
+}
+
+.insurance-copy-icon-btn svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .insurance-copy-icon-btn:hover {
