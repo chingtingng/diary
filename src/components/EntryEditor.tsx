@@ -4,7 +4,10 @@ import type { Entry, EntryPatch } from '../types/entry'
 import type { MoodId } from '../lib/moods'
 import { getMood } from '../lib/moods'
 import { atLocalNoon } from '../lib/dates'
-import { useKeyboardBottomInset, FLOATING_CHROME_BUFFER_PX } from '../hooks/useKeyboardBottomInset'
+import {
+  clearJournalCaretInset,
+  syncJournalCaret,
+} from '../lib/journalCaret'
 import { DateField } from './DateField'
 import { MoodPicker } from './MoodPicker'
 import { MenuDots } from './MenuDots'
@@ -44,78 +47,15 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
   const [focused, setFocused] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const keyboardInset = useKeyboardBottomInset(focused)
-
   const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  const keepCaretVisible = useCallback(() => {
+  const syncCaret = useCallback(() => {
     const el = textareaRef.current
     if (!el) return
-
+    // Two frames: first applies padding, second scrolls against the new scrollHeight.
     requestAnimationFrame(() => {
-      const vv = window.visualViewport
-      const style = window.getComputedStyle(el)
-      const lineHeight = Number.parseFloat(style.lineHeight) || 28
-      const chromeBuffer =
-        typeof window.matchMedia === 'function' &&
-        window.matchMedia('(pointer: coarse)').matches
-          ? FLOATING_CHROME_BUFFER_PX
-          : 12
-
-      // Approximate caret Y from line wraps by measuring a mirrored prefix.
-      const mirror = document.createElement('div')
-      const props = [
-        'borderTopWidth',
-        'borderRightWidth',
-        'borderBottomWidth',
-        'borderLeftWidth',
-        'boxSizing',
-        'fontFamily',
-        'fontSize',
-        'fontStyle',
-        'fontWeight',
-        'letterSpacing',
-        'lineHeight',
-        'paddingTop',
-        'paddingRight',
-        'paddingBottom',
-        'paddingLeft',
-        'textIndent',
-        'textTransform',
-        'whiteSpace',
-        'wordSpacing',
-        'wordBreak',
-        'overflowWrap',
-      ] as const
-      for (const prop of props) {
-        mirror.style[prop] = style[prop]
-      }
-      mirror.style.position = 'absolute'
-      mirror.style.visibility = 'hidden'
-      mirror.style.pointerEvents = 'none'
-      mirror.style.whiteSpace = 'pre-wrap'
-      mirror.style.overflowWrap = 'break-word'
-      mirror.style.width = `${el.clientWidth}px`
-      mirror.style.height = 'auto'
-      // Exclude textarea padding from the mirror so caret Y matches content.
-      mirror.style.paddingBottom = '0px'
-      mirror.textContent = el.value.slice(0, el.selectionEnd)
-      const marker = document.createElement('span')
-      marker.textContent = '\u200b'
-      mirror.appendChild(marker)
-      document.body.appendChild(mirror)
-      const caretTopInContent = marker.offsetTop + Number.parseFloat(style.paddingTop || '0')
-      document.body.removeChild(mirror)
-
-      const rect = el.getBoundingClientRect()
-      const caretBottomInViewport = rect.top + (caretTopInContent - el.scrollTop) + lineHeight
-      const safeBottom = vv
-        ? vv.offsetTop + vv.height - chromeBuffer
-        : window.innerHeight - chromeBuffer
-
-      if (caretBottomInViewport > safeBottom) {
-        el.scrollTop += caretBottomInViewport - safeBottom
-      }
+      syncJournalCaret(el)
+      requestAnimationFrame(() => syncJournalCaret(el))
     })
   }, [])
 
@@ -126,14 +66,37 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
 
   const settleCaretAfterFocus = useCallback(() => {
     clearSettleTimers()
-    // iOS keyboard + visualViewport settle over several hundred ms after focus.
-    const delays = [0, 50, 100, 200, 350, 500, 700]
-    settleTimers.current = delays.map((delay) =>
-      window.setTimeout(() => keepCaretVisible(), delay)
-    )
-  }, [clearSettleTimers, keepCaretVisible])
+    // iOS keyboard + visualViewport keep moving after the focus event.
+    const delays = [0, 50, 100, 160, 240, 360, 500, 700, 1000]
+    settleTimers.current = delays.map((delay) => window.setTimeout(() => syncCaret(), delay))
+  }, [clearSettleTimers, syncCaret])
 
   useEffect(() => () => clearSettleTimers(), [clearSettleTimers])
+
+  useEffect(() => {
+    if (!focused) {
+      clearSettleTimers()
+      clearJournalCaretInset(textareaRef.current)
+      return
+    }
+
+    const onViewport = () => syncCaret()
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', onViewport)
+    vv?.addEventListener('scroll', onViewport)
+    window.addEventListener('resize', onViewport)
+
+    // Keep syncing while focused — Safari adjusts VV during typing too.
+    const poll = window.setInterval(() => syncCaret(), 100)
+    syncCaret()
+
+    return () => {
+      vv?.removeEventListener('resize', onViewport)
+      vv?.removeEventListener('scroll', onViewport)
+      window.removeEventListener('resize', onViewport)
+      window.clearInterval(poll)
+    }
+  }, [focused, syncCaret, clearSettleTimers])
 
   useEffect(() => {
     if (saveTimer.current) {
@@ -185,16 +148,8 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
     saveTimer.current = setTimeout(() => {
       persist({ content: text })
     }, 800)
-    keepCaretVisible()
+    syncCaret()
   }
-
-  useEffect(() => {
-    if (!focused) {
-      clearSettleTimers()
-      return
-    }
-    keepCaretVisible()
-  }, [focused, keyboardInset, keepCaretVisible, clearSettleTimers])
 
   const handleMood = async (next: MoodId | null) => {
     setMood(next)
@@ -242,12 +197,9 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
     <div
       className="editor"
       style={
-        {
-          ...(moodMeta
-            ? { '--accent-soft': moodMeta.colorSoft, '--accent': moodMeta.color }
-            : null),
-          '--editor-keyboard-inset': `${keyboardInset}px`,
-        } as CSSProperties
+        moodMeta
+          ? ({ '--accent-soft': moodMeta.colorSoft, '--accent': moodMeta.color } as CSSProperties)
+          : undefined
       }
     >
       <header className="editor-header">
@@ -343,9 +295,11 @@ export function EntryEditor({ entry, onSave, onDelete, onDraftChange }: EntryEdi
         onBlur={() => {
           setFocused(false)
           clearSettleTimers()
+          clearJournalCaretInset(textareaRef.current)
         }}
-        onSelect={keepCaretVisible}
-        onKeyUp={keepCaretVisible}
+        onClick={syncCaret}
+        onSelect={syncCaret}
+        onKeyUp={syncCaret}
         placeholder="What's on your mind today?"
         spellCheck
       />

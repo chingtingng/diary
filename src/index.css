@@ -1834,9 +1834,6 @@ button:focus {
   line-height: 1.75;
   color: var(--ink);
   min-height: 200px;
-  /* Inset must live inside the textarea so short entries can still scroll
-     the caret above Safari’s floating URL pill / keyboard chrome. */
-  padding-bottom: var(--editor-keyboard-inset, 0px);
 }
 
 .editor-textarea::placeholder {
