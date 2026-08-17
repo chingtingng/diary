@@ -51,8 +51,8 @@ export const INSIGHT_PERIODS: { id: ExpenseFilter; label: string }[] = [
   { id: 'all', label: 'All' },
 ]
 
-/** Week ranges match the expense mockup (Sunday–Saturday). */
-const WEEK_OPTIONS = { weekStartsOn: 0 as const }
+/** Week ranges match the iOS redesign (Mon–Sun), e.g. Aug 10 - Aug 16. */
+const WEEK_OPTIONS = { weekStartsOn: 1 as const }
 
 export type SpendingBar = {
   key: string

@@ -20,8 +20,8 @@ interface DateFieldProps {
   label?: string
 }
 
-const WEEK_OPTIONS = { weekStartsOn: 0 as const }
-const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const WEEK_OPTIONS = { weekStartsOn: 1 as const }
+const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
 export function DateField({ value, onChange, label = 'Date' }: DateFieldProps) {
   const [open, setOpen] = useState(false)
