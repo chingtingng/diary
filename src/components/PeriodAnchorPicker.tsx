@@ -23,8 +23,8 @@ interface PeriodAnchorPickerProps {
   onClose: () => void
 }
 
-const WEEK_OPTIONS = { weekStartsOn: 1 as const }
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+const WEEK_OPTIONS = { weekStartsOn: 0 as const }
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 export function PeriodAnchorPicker({
   period,
