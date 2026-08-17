@@ -75,13 +75,24 @@ function Glyph({ category }: { category: ExpenseCategoryId }) {
       )
     default:
       return (
-        <path
-          d="M12 7v10M7 12h10"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
+        <>
+          <path
+            d="M12 4.5 13.4 9.2 18 10.5l-4.6 1.3L12 16.5l-1.4-4.7L6 10.5l4.6-1.3L12 4.5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M17.5 14.5 18.2 16.8 20.5 17.5l-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
       )
   }
 }
