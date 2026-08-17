@@ -1414,62 +1414,57 @@ button:focus {
   transition: background 0.15s, transform 0.15s;
 }
 
-.expense-txn-row {
-  gap: 0;
-  padding: 0;
-  border-top: 1px solid var(--line);
-}
-
 .expense-txn-list > li:first-child .expense-item {
   border-top: none;
-}
-
-.expense-txn-open {
-  flex: 1;
-  min-width: 0;
-  padding: 9px 0;
-  border-top: none;
-  justify-content: flex-start;
 }
 
 .expense-item-button:hover {
   transform: translateY(-1px);
 }
 
-.expense-txn-open:hover {
+.expense-swipe-front .expense-item-button:hover {
   transform: none;
 }
 
-.expense-item-delete {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: 12px;
-  border-radius: 50%;
-  color: var(--danger);
-  background: #f8e3e3;
-  transition: background 0.15s, transform 0.15s;
+.expense-swipe-row {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-x pan-y;
 }
 
-.expense-item-delete:hover {
+.expense-swipe-delete {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #f8e3e3;
+  color: var(--danger);
+}
+
+.expense-swipe-delete:hover {
   background: color-mix(in srgb, #f8e3e3 70%, var(--danger));
 }
 
-.expense-item-delete:disabled {
+.expense-swipe-delete:disabled {
   opacity: 0.7;
 }
 
-.expense-item-button:focus-visible,
-.expense-item-delete:focus-visible {
+.expense-swipe-front {
+  position: relative;
+  z-index: 1;
+  background: var(--paper-solid);
+}
+
+.expense-item-button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 2px;
   border-radius: 10px;
-}
-
-.expense-item-delete:focus-visible {
-  border-radius: 50%;
 }
 
 .expense-item-main {

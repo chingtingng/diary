@@ -31,23 +31,9 @@ import { CategoryField } from './CategoryField'
 import { CategoryIcon } from './CategoryIcon'
 import { DateField } from './DateField'
 import { ExpenseDetail } from './ExpenseDetail'
+import { ExpenseSwipeRow } from './ExpenseSwipeRow'
 import { PeriodAnchorPicker } from './PeriodAnchorPicker'
 import { SpendingBarChart } from './SpendingBarChart'
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
-      <path
-        d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
 
 interface ExpenseTrackerProps {
   expenses: Expense[]
@@ -99,37 +85,31 @@ function AccordionChevron() {
 
 function ExpenseTxnRow({
   expense,
+  revealed,
   tabIndex,
   meta,
   onOpen,
   onDelete,
+  onRevealedChange,
 }: {
   expense: Expense
+  revealed: boolean
   tabIndex?: number
   meta?: string
   onOpen: () => void
   onDelete: () => void | Promise<void>
+  onRevealedChange: (open: boolean) => void
 }) {
-  const [busy, setBusy] = useState(false)
-
-  const handleDelete = async () => {
-    if (busy) return
-    setBusy(true)
-    haptic('error')
-    try {
-      await onDelete()
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
-    <div className="expense-item expense-txn-row">
+    <ExpenseSwipeRow revealed={revealed} onRevealedChange={onRevealedChange} onDelete={onDelete}>
       <button
         type="button"
-        className="expense-item-button expense-txn-open"
+        className="expense-item expense-item-button expense-txn-row"
         tabIndex={tabIndex}
-        onClick={onOpen}
+        onClick={() => {
+          if (revealed) onRevealedChange(false)
+          else onOpen()
+        }}
       >
         <CategoryIcon category={expense.category} size={36} />
         <div className="expense-item-main">
@@ -142,19 +122,7 @@ function ExpenseTxnRow({
         </div>
         <span className="expense-item-amount">${formatMoney(expense.amount)}</span>
       </button>
-      <button
-        type="button"
-        className="expense-item-delete"
-        aria-label="Delete expense"
-        tabIndex={tabIndex}
-        disabled={busy}
-        onClick={() => {
-          void handleDelete()
-        }}
-      >
-        <TrashIcon />
-      </button>
-    </div>
+    </ExpenseSwipeRow>
   )
 }
 
@@ -178,6 +146,7 @@ export function ExpenseTracker({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [expandedWeekDays, setExpandedWeekDays] = useState<Set<string>>(() => new Set())
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => new Set())
+  const [swipeOpenId, setSwipeOpenId] = useState<string | null>(null)
   const addFormRef = useRef<HTMLFormElement>(null)
   const periodHostRef = useRef<HTMLElement>(null)
   const periodPaneRef = useRef<HTMLDivElement>(null)
@@ -187,6 +156,7 @@ export function ExpenseTracker({
   const shiftAnchor = useCallback(
     (direction: -1 | 1) => {
       haptic('select')
+      setSwipeOpenId(null)
       setExpandedWeekDays(new Set())
       setExpandedCategories(new Set())
       setAnchor((value) => shiftPeriod(value, period, direction))
@@ -243,6 +213,7 @@ export function ExpenseTracker({
     setShowAddForm(false)
     setExpandedWeekDays(new Set())
     setExpandedCategories(new Set())
+    setSwipeOpenId(null)
   }
 
   const toggleWeekDay = (key: string) => {
@@ -270,6 +241,7 @@ export function ExpenseTracker({
     setSpentAt(atLocalNoon(new Date()))
     setError(null)
     setShowAddForm(false)
+    setSwipeOpenId(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -359,6 +331,7 @@ export function ExpenseTracker({
             className={`expense-period-badge${current ? ' current' : ''}`}
             data-haptic="select"
             onClick={() => {
+              setSwipeOpenId(null)
               setExpandedWeekDays(new Set())
               setExpandedCategories(new Set())
               setAnchor(new Date())
@@ -376,6 +349,7 @@ export function ExpenseTracker({
             onChange={(next) => {
               setExpandedWeekDays(new Set())
               setExpandedCategories(new Set())
+              setSwipeOpenId(null)
               setAnchor(next)
             }}
             onClose={() => setPickerOpen(false)}
@@ -468,8 +442,10 @@ export function ExpenseTracker({
                 <li key={expense.id}>
                   <ExpenseTxnRow
                     expense={expense}
+                    revealed={swipeOpenId === expense.id}
                     onOpen={() => setSelectedId(expense.id)}
                     onDelete={() => onDelete(expense.id)}
+                    onRevealedChange={(open) => setSwipeOpenId(open ? expense.id : null)}
                   />
                 </li>
               ))}
@@ -508,9 +484,13 @@ export function ExpenseTracker({
                             <li key={expense.id}>
                               <ExpenseTxnRow
                                 expense={expense}
+                                revealed={swipeOpenId === expense.id}
                                 tabIndex={expanded ? 0 : -1}
                                 onOpen={() => setSelectedId(expense.id)}
                                 onDelete={() => onDelete(expense.id)}
+                                onRevealedChange={(open) =>
+                                  setSwipeOpenId(open ? expense.id : null)
+                                }
                               />
                             </li>
                           ))}
@@ -568,10 +548,14 @@ export function ExpenseTracker({
                             <li key={expense.id}>
                               <ExpenseTxnRow
                                 expense={expense}
+                                revealed={swipeOpenId === expense.id}
                                 tabIndex={expanded ? 0 : -1}
                                 meta={formatTxnDate(expense.spentAt)}
                                 onOpen={() => setSelectedId(expense.id)}
                                 onDelete={() => onDelete(expense.id)}
+                                onRevealedChange={(open) =>
+                                  setSwipeOpenId(open ? expense.id : null)
+                                }
                               />
                             </li>
                           ))}
@@ -594,6 +578,7 @@ export function ExpenseTracker({
                       writeExpenseFilter('month')
                       setExpandedWeekDays(new Set())
                       setExpandedCategories(new Set())
+                      setSwipeOpenId(null)
                       setAnchor(row.date)
                     }}
                   >
