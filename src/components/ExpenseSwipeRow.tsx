@@ -179,14 +179,10 @@ export function ExpenseSwipeRow({
         disabled={busy}
         onClick={handleDelete}
       >
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden>
           <path
-            d="M5 7h14M10 7V5h4v2M8 7l1 13h6l1-13"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            fill="currentColor"
+            d="M9.5 3A1.5 1.5 0 0 0 8 4.5V6H5a1 1 0 1 0 0 2h1.05l.72 11.08A2.5 2.5 0 0 0 9.26 21.5h5.48a2.5 2.5 0 0 0 2.49-2.42L17.95 8H19a1 1 0 1 0 0-2h-3V4.5A1.5 1.5 0 0 0 14.5 3h-5Zm1 3h3V5h-3v1Zm-.25 4.25a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0v-6.5a.75.75 0 0 1 .75-.75Zm4.5 0a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0v-6.5a.75.75 0 0 1 .75-.75Z"
           />
         </svg>
       </button>
