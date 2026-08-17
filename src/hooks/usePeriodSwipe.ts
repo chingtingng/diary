@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from 'react'
 
 const THRESHOLD = 48
 const AXIS_LOCK = 10
-const IGNORE = '.expense-swipe-row, .expense-form, .expense-add-toggle, .period-picker'
+const IGNORE = '.expense-txn-row, .expense-form, .expense-add-toggle, .period-picker'
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
