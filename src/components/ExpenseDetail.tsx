@@ -32,7 +32,6 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   useAllowFormScroll(formRef)
 
@@ -42,7 +41,6 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
     setCategory(expense.category)
     setSpentAt(atLocalNoon(new Date(expense.spentAt)))
     setError(null)
-    setSaved(false)
   }, [
     expense.id,
     expense.amount,
@@ -55,7 +53,6 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setSaved(false)
 
     const parsed = Number.parseFloat(amount)
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -72,11 +69,9 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
         category,
         spentAt: nextSpentAt,
       })
-      setSpentAt(new Date(nextSpentAt))
-      setSaved(true)
+      onBack()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save expense')
-    } finally {
       setSaving(false)
     }
   }
@@ -116,46 +111,27 @@ export function ExpenseDetail({ expense, onSave, onDelete, onBack }: ExpenseDeta
             min="0"
             step="0.01"
             value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value)
-              setSaved(false)
-            }}
+            onChange={(e) => setAmount(e.target.value)}
             required
           />
         </label>
 
-        <DateField
-          value={spentAt}
-          onChange={(next) => {
-            setSpentAt(next)
-            setSaved(false)
-          }}
-        />
+        <DateField value={spentAt} onChange={setSpentAt} />
 
-        <CategoryField
-          value={category}
-          onChange={(next) => {
-            setCategory(next)
-            setSaved(false)
-          }}
-        />
+        <CategoryField value={category} onChange={setCategory} />
 
         <label>
           Note
           <input
             type="text"
             value={note}
-            onChange={(e) => {
-              setNote(e.target.value)
-              setSaved(false)
-            }}
+            onChange={(e) => setNote(e.target.value)}
             placeholder="Coffee, groceries, train…"
             maxLength={120}
           />
         </label>
 
         {error && <p className="expense-form-error">{error}</p>}
-        {saved && !error && <p className="expense-form-saved">Saved</p>}
 
         <div className="expense-detail-actions">
           <button type="submit" className="expense-submit" data-haptic="success" disabled={saving || deleting}>

@@ -1536,13 +1536,6 @@ button:focus {
   color: var(--ink);
 }
 
-.expense-form-saved {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--accent);
-}
-
 .expense-detail .expense-form {
   gap: 14px;
   padding-top: 2px;
